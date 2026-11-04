@@ -87,10 +87,10 @@ try {
 check('渲染出了非空 HTML', html.length > 200, `${html.length} chars`)
 check('有页面标题', html.includes('内容生产 · 总控台'))
 check('四个页签都在', ['总控台', '审核', '待发布', '设置'].every((label) => html.includes(label)))
-check('新建批次表单在', html.includes('新建批次'))
-check('有主题输入框', html.includes('主题（必填）'))
-check('有素材目录输入框', html.includes('素材目录'))
-check('有创建按钮', html.includes('创建批次'))
+check('AI 创建入口在', html.includes('让 AI 拆解'))
+check('有任务描述输入', html.includes('描述你想生产什么'))
+check('有素材目录输入', html.includes('素材目录（可稍后在高级设置里填）'))
+check('有高级设置入口', html.includes('高级设置'))
 check('初始状态显示空批次列表', html.includes('还没有批次'))
 check('没有渲染期异常标记', !html.includes('接口不可用'))
 
@@ -165,7 +165,13 @@ const formWithPicker = render(C.NewBatchForm, {
 check('有目录选择器时按钮可用', formWithPicker.includes('选择目录') && !/disabled=""[^>]*>选择目录/.test(formWithPicker))
 
 const formBad = render(C.NewBatchForm, { groups: [], health: { ffmpeg: { ok: false, error: 'ffmpeg 缺失' } }, platforms: PLATFORM_FIXTURE })
-check('ffmpeg 缺失时表单告警', formBad.includes('ffmpeg 缺失'))
+check('ffmpeg 缺失时表单仍可渲染', formBad.includes('创建批次') && !formBad.includes('ffmpeg 缺失'))
+
+const composer = render(C.CreateComposer, { platforms: PLATFORM_FIXTURE, services: {}, onCreated: () => {}, onAdjust: () => {} })
+check('composer 有 AI 拆解入口', composer.includes('让 AI 拆解'))
+check('composer 有任务描述输入', composer.includes('描述你想生产什么'))
+check('composer 有高级设置入口', composer.includes('高级设置'))
+check('composer 有素材目录入口', composer.includes('选择目录') && composer.includes('扫描素材'))
 
 // 审核卡片：初始态不发请求，只验证能构建
 const reviewHtml = render(C.ReviewCard, { itemId: 'x-001', index: 0, total: 3 })

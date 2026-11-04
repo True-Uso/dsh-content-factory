@@ -20,6 +20,8 @@ import { computeCost, sumUsage } from './cost.js'
 import { preflight } from './preflight.js'
 import { listGroups, loadIndex, scanMaterials } from './steps/scan.js'
 import { listPlatforms, normalizeBatchConfig } from './platforms.js'
+import { parseBrief } from './brief.js'
+import { installFfmpeg } from './install-tools.js'
 import { batchExportName, buildBatchZip, buildItemZip, itemExportName } from './export.js'
 
 const MASK = '__stored__'
@@ -114,6 +116,11 @@ export function createApi({ runner, prefix = '/content-studio/api', allowedOrigi
       })
     }
 
+    if (method === 'POST' && path === '/tools/install-ffmpeg') {
+      const result = await installFfmpeg()
+      return sendJson(res, result.ok ? 200 : 500, result)
+    }
+
     /* ---------------- providers ---------------- */
     if (method === 'GET' && path === '/providers') {
       const providers = await loadProviders()
@@ -184,6 +191,25 @@ export function createApi({ runner, prefix = '/content-studio/api', allowedOrigi
       return sendJson(res, 200, {
         batches: batches.map((batch) => ({ ...batch, totals: batchTotals(batch) })),
       })
+    }
+
+    if (method === 'POST' && path === '/batches/parse') {
+      const body = await readJson(req)
+      const brief = String(body.brief || '').trim()
+      if (!brief) return sendJson(res, 400, { error: 'brief 不能为空' })
+      let llm = null
+      try {
+        const roles = await resolveRoleProviders(await loadProviders())
+        llm = roles.llm || null
+      } catch {
+        llm = null
+      }
+      const result = await parseBrief({
+        brief,
+        overrides: { platform: body.platform, count: body.count, reviewMode: body.reviewMode },
+        llm,
+      })
+      return sendJson(res, 200, result)
     }
 
     if (method === 'POST' && path === '/batches') {

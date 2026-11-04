@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>内容生产 · UI 预览</title>
+  <style>
+    :root {
+      --dsw-radius-sm: 6px;
+      --dsw-radius-md: 8px;
+      --dsw-radius-lg: 12px;
+      --dsw-alias-label-primary: #1f2329;
+      --dsw-alias-label-secondary: #4e5969;
+      --dsw-alias-label-tertiary: #86909c;
+      --dsw-alias-label-primary-foreground: #ffffff;
+      --dsw-alias-bg-layer-1: #ffffff;
+      --dsw-alias-bg-layer-3: #f7f8fa;
+      --dsw-alias-bg-layer-4: #eef0f3;
+      --dsw-alias-bg-module-platform: #f2f3f5;
+      --dsw-alias-border-l2: #e5e6eb;
+      --dsw-alias-border-l3: #d9dbe0;
+      --dsw-alias-border-l4: #c9cdd4;
+      --dsw-alias-button-primary-fill: #1f2329;
+      --dsw-alias-button-primary-hover: #333843;
+      --dsw-alias-interactive-bg-hover: #f2f3f5;
+      --dsw-alias-interactive-bg-active: #e8eaed;
+      --dsw-alias-state-success-primary: #2ea043;
+      --dsw-alias-state-warn-primary: #d29922;
+      --dsw-alias-state-error-primary: #f85149;
+      --dsw-alias-state-business-primary: #3370ff;
+      --dsw-focus-ring-color: #3370ff;
+      --dsw-focus-ring-width: 2px;
+    }
+    html, body { height: 100%; }
+    #root { height: 900px; }
+    body {
+      margin: 0;
+      background: #ffffff;
+      color: var(--dsw-alias-label-primary);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="/react.js"></script>
+  <script src="/react-dom.js"></script>
+  <script>
+    window.__ModuleLoader__ = {
+      load({ id, factory }) {
+        window.__clientModuleId = id
+        window.__clientFactory = factory
+      },
+    }
+  </script>
+  <script src="/client.js"></script>
+  <script>
+    const React = window.React
+    const platforms = [
+      { id: 'douyin', label: '抖音', aspectRatio: '9:16', targetSec: 26, titleMaxLength: 30, coverWidth: 1080, coverHeight: 1920 },
+      { id: 'xiaohongshu', label: '小红书', aspectRatio: '9:16', targetSec: 26, titleMaxLength: 20, coverWidth: 1080, coverHeight: 1920 },
+      { id: 'shipinhao', label: '视频号', aspectRatio: '9:16', targetSec: 26, titleMaxLength: 30, coverWidth: 1080, coverHeight: 1920 },
+    ]
+    const steps = {
+      script: { status: 'done', ms: 1200 }, voice: { status: 'done', ms: 480 },
+      subtitle: { status: 'done', ms: 40 }, visual: { status: 'done', ms: 900 },
+      plan: { status: 'done', ms: 30 }, render: { status: 'done', ms: 5100 },
+      cover: { status: 'done', ms: 280 }, validate: { status: 'done', ms: 830 },
+    }
+    const report = { status: 'passed', summary: { total: 19, passed: 19, warnings: 0, errors: 0 }, errors: [], warnings: [] }
+    const items = [
+      { id: 'i1', seq: 1, title: '通勤三件套', status: 'review_pending', durationSec: 7.2, steps, report, review: null, autoRetries: 0, error: null },
+      { id: 'i2', seq: 2, title: '收纳箱怎么选', status: 'approved', durationSec: 6.8, steps, report, review: { decision: 'approved', note: '批量通过' }, autoRetries: 0, error: null },
+      { id: 'i3', seq: 3, title: '五分钟出门', status: 'failed', durationSec: null, steps: { ...steps, visual: { status: 'failed' } }, report: null, review: null, autoRetries: 1, error: '视频模型超时（task-123）' },
+    ]
+    const totals = {
+      usage: { llmTokens: 2100, ttsCharacters: 86, ttsSeconds: 21, videoSeconds: 9, videoShots: 3, imageCount: 0 },
+      cost: { priced: true, currency: 'CNY', total: 7.2, lines: [] },
+      items: 3, costCap: 20, capRatio: 0.36, capWarning: false, capReached: false,
+    }
+    const batches = [
+      {
+        id: 'batch-1', title: '秋日通勤批次', status: 'review', createdAt: Date.now() - 86400000,
+        config: { platform: 'douyin', reviewMode: 'required', costCap: 20, publishStartAt: new Date(Date.now() + 86400000).toISOString(), publishIntervalMinutes: 1440 },
+        items: items.map((item) => ({ ...item })), totals,
+      },
+      {
+        id: 'batch-2', title: '家居收纳 · 自动放行', status: 'done', createdAt: Date.now() - 2 * 86400000,
+        config: { platform: 'xiaohongshu', reviewMode: 'auto', costCap: null, publishStartAt: null, publishIntervalMinutes: 1440 },
+        items: [
+          { id: 'j1', seq: 1, title: '玄关收纳', status: 'approved', durationSec: 7.1, steps, report, review: { decision: 'approved', mode: 'auto' }, autoRetries: 0, error: null },
+        ],
+        totals: { usage: { llmTokens: 700, videoSeconds: 3, videoShots: 1 }, cost: { priced: true, currency: 'CNY', total: 2.4, lines: [] }, items: 1, costCap: null, capRatio: 0, capWarning: false, capReached: false },
+      },
+    ]
+    const detail = (id) => {
+      const batch = batches.find((entry) => entry.id === id) || batches[0]
+      return { batch: { ...batch, items: batch.items.map((item) => ({ ...item, dir: 'demo' })) }, queue: { active: [], queued: 0 } }
+    }
+    const respond = (data) => ({
+      ok: true, status: 200,
+      text: async () => JSON.stringify(data),
+      json: async () => data,
+    })
+    let created = 0
+    window.fetch = async (input, init = {}) => {
+      const path = String(input).replace('/content-studio/api', '')
+      const method = init.method || 'GET'
+      if (path === '/meta') return respond({ platforms, reviewModes: [], dataDir: '~/.content-studio' })
+      if (path === '/batches/parse') {
+        return respond({
+          source: 'llm',
+          count: 5,
+          config: {
+            topic: '秋日通勤穿搭', platform: 'douyin', targetSec: 26, aspectRatio: '9:16',
+            reviewMode: 'required', publishStartAt: new Date(Date.now() + 86400000).toISOString(),
+            publishIntervalMinutes: 1440, costCap: 20, materialMode: 'pool', shotCount: 8,
+          },
+          plan: {
+            summary: '准备生产 5 条抖音内容，主题「秋日通勤穿搭」，需人工审核。',
+            assumptions: ['未指定时长，按平台默认 26 秒', '未指定发布时间，按每天 18:00 排期'],
+            warnings: [],
+          },
+        })
+      }
+      if (path === '/batches' && method === 'POST') {
+        created += 1
+        return respond({ batch: { ...batches[0], id: `batch-new-${created}`, title: '秋日通勤穿搭' }, preflight: { warnings: [] } })
+      }
+      if (path === '/health') {
+        return respond({
+          ffmpeg: { ok: true },
+          providers: [
+            { id: 'gpt-text', role: 'llm', enabled: true },
+            { id: 'bailian-tts', role: 'tts', enabled: true },
+            { id: 'seedance', role: 'video', enabled: true },
+          ],
+          queue: { active: [], queued: 0 },
+        })
+      }
+      if (path === '/materials/groups') return respond({ groups: [{ group: '通勤穿搭', count: 3 }, { group: '家居收纳', count: 3 }], total: 6 })
+      if (path === '/batches') return respond({ batches })
+      const detailMatch = /^\/batches\/([^/]+)$/.exec(path)
+      if (detailMatch) return respond(detail(detailMatch[1]))
+      if (/^\/batches\/[^/]+\/log$/.test(path)) return respond({ batch: '[2026-11-04T10:00:00.000Z] 创建批次 batch-1，共 3 条\n', items: [] })
+      if (path.startsWith('/items/')) {
+        return respond({
+          item: items[0],
+          script: { title: '通勤三件套', description: '简介', hashtags: ['#穿搭'], coverText: { main: '通勤', sub: '三件套' } },
+          report, review: null,
+          media: { master: 1024, base: '/content-studio/api/media/b/i', covers: { vertical: 10, horizontal: 10, square: 10 } },
+        })
+      }
+      return respond({})
+    }
+
+    const fakeWorkspace = {
+      async listDirectory(path) {
+        const base = path || 'C:\\素材'
+        const child = base.includes('通勤穿搭') || base.includes('家居收纳')
+        return {
+          path: base,
+          entries: child ? [] : [
+            { name: '通勤穿搭', path: 'C:\\素材\\通勤穿搭' },
+            { name: '家居收纳', path: 'C:\\素材\\家居收纳' },
+          ],
+          crumbs: [{ name: 'C:', path: 'C:\\' }, { name: '素材', path: 'C:\\素材' }],
+        }
+      },
+    }
+    const mod = window.__clientFactory((name) => {
+      if (name === 'react') return React
+      throw new Error(`unexpected require: ${name}`)
+    })
+    const registrations = []
+    mod.apply({
+      get: (name) => name === 'uiWorkspace' ? fakeWorkspace : undefined,
+      slots: {
+        inject(key, callback) { callback(); return () => {} },
+        register(options, component) { registrations.push({ options, component }); return () => {} },
+      },
+    })
+    const main = registrations.find((entry) => entry.options.name === 'main').component
+    ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(main, {}))
+  </script>
+</body>
+</html>

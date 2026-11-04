@@ -24,7 +24,9 @@ DeepSeek Harness 插件：**批量生产短视频**，从素材到成片到审�
 
 **1. 依赖**
 
-`@ffmpeg-installer/ffmpeg` 和 `@ffprobe-installer/ffprobe` 会随 npm 安装按平台取二进制，运营不需要手动放 ffmpeg。解析顺序仍然是：显式配置 → `CONTENT_STUDIO_FFMPEG` / `CONTENT_STUDIO_FFPROBE` → PATH → 插件位置 → `~/.content-studio/bin` → 随包安装的二进制，方便 IT 用更新版本覆盖。
+`@ffmpeg-installer/ffmpeg` 和 `@ffprobe-installer/ffprobe` 会随 npm 安装按平台取二进制，运营不需要手动放 ffmpeg。解析顺序：显式配置 → `CONTENT_STUDIO_FFMPEG` / `CONTENT_STUDIO_FFPROBE` → `CONTENT_STUDIO_FFMPEG_DIR` → PATH → 插件安装目录的 `bin/` 和上级 `tools/bin` → `~/.content-studio/bin` → 随包安装的二进制。路径都由插件位置推导，不写死工作区。
+
+如果仍然找不到，总控台就绪检查里有 **安装 ffmpeg** 按钮：优先从工作区 `tools/bin` 复制到插件安装目录的 `bin/`；插件目录不可写时回退到 `~/.content-studio/bin`；没有本地源才从 gyan.dev 下载。
 
 **2. 配模型**
 
@@ -49,9 +51,9 @@ DeepSeek Harness 插件：**批量生产短视频**，从素材到成片到审�
 ## 用起来
 
 1. 左侧栏「内容生产」打开**总控台**
-2. 填主题、数量、素材目录、平台（抖音/小红书/视频号）、发布起点与间隔、审核模式、成本上限；先点「扫描素材」
-3. 「创建批次」→ 在列表里点开 → 「开始」
-4. 审核模式为「需人工审核」的批次，在「审核」页逐条看片、过稿或驳回；「自动放行」的批次校验通过后直接进「待发布」
+2. 在输入框里写一句话，例如：`做 5 条秋日通勤穿搭，发抖音，每天 18:00 一条，预算 20 元`；素材目录可以一起填，点「让 AI 拆解」
+3. 看 AI 给出的生产计划（平台、条数、时长、审核方式、发布时间、成本上限），确认创建；需要精确控制时点「高级设置」
+4. 审核模式为「需人工审核」的批次，在「审核」页逐条看片、过稿或驳回；「自动放行」的批次直接进「待发布」
 5. 「待发布」页逐条导出发布包；批次详情也能「导出整批」
 6. 批次详情里点「生产日志」看批次与条目的完整执行记录
 
@@ -128,11 +130,13 @@ DeepSeek Harness 插件：**批量生产短视频**，从素材到成片到审�
 |---|---|---|
 | GET | `/content-studio/api/meta` | 适配器类型、步骤、审核原因、平台预设 |
 | GET | `/content-studio/api/health` | ffmpeg 状态、滤镜能力、队列 |
+| POST | `/tools/install-ffmpeg` | 复制/下载 ffmpeg 到插件 `bin/`（不可写时回退到数据目录） |
 | GET/PUT/DELETE | `/providers[/:id]` | 模型配置 |
 | POST | `/providers/:id/health` `/test` | 健康检查 / 试跑 |
 | POST | `/materials/scan` | 扫描素材目录 |
 | GET | `/materials/groups` | 素材分组统计 |
 | GET/POST | `/batches` | 批次列表（带用量、成本、成本上限状态）/ 创建 |
+| POST | `/batches/parse` | 一句话需求 → 批次计划（LLM 或本地解析） |
 | DELETE | `/batches/:id?purge=1` | 取消并删除产物目录 |
 | POST | `/batches/:id/start\|pause\|resume\|cancel` | 批次控制 |
 | POST | `/batches/:id/config` | 运行中改成本上限 / 审核模式 / 发布时间 |
@@ -201,22 +205,23 @@ content-studio/
 ## 测试
 
 ```bash
-node tools/check.mjs               # 25 个模块加载
+node tools/check.mjs               # 27 个模块加载
 node tools/test-pipeline.mjs       # 56 项：字幕/ASS/WAV/文案/存储/配音
 node tools/test-render.mjs         # 23 项：EDL + 真渲染 + 循环/转场/BGM/图片/16:9
 node tools/test-media.mjs          # 50 项：扫描/索引清理/封面/三级校验/平台硬规格/去重/图片探测
 node tools/test-pipeline-e2e.mjs   # 34 项：单条全链路 + 用量核算
 node tools/test-worker.mjs         # 34 项：并发/续跑/暂停/去重/自动重试/自动放行/成本上限
 node tools/test-platforms.mjs      # 22 项：平台预设与批次配置归一化
+node tools/test-brief.mjs          # 31 项：一句话需求解析、LLM 合并、失败回退
 node tools/test-export.mjs         # 11 项：发布包 ZIP 结构、CRC、缺失成片守卫
-node tools/test-api.mjs            # 94 项：真 HTTP + 媒体 + 审核 + 导出 + 日志 + 自动放行
+node tools/test-api.mjs            # 98 项：真 HTTP + 媒体 + 审核 + 导出 + 日志 + 自动放行 + brief 解析
 node tools/test-adapters.mjs       # 25 项：ComfyUI / 方舟 / 生图 适配器契约
 node tools/test-activate.mjs       # 17 项：激活路径
-node tools/test-client-render.mjs  # 49 项：真 React 渲染 UI
+node tools/test-client-render.mjs  # 53 项：真 React 渲染 UI
 node tools/acceptance.mjs          # 5 条批量验收，产出报告
 ```
 
-合计 415 项断言。
+合计 454 项断言。
 
 `test-client-render` 需要本地 React：
 

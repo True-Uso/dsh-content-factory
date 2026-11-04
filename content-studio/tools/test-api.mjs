@@ -100,6 +100,14 @@ const health = await call('GET', '/health')
 check('health 报告 ffmpeg 可用', health.json.ffmpeg.ok === true)
 check('health 报告滤镜齐备', health.json.capabilities.ok === true, JSON.stringify(health.json.capabilities))
 
+/* ---------- 一句话需求解析 ---------- */
+const parsed = await call('POST', '/batches/parse', { brief: '做 3 条秋日通勤穿搭，发小红书，每天 18:00 一条，预算 20 元' })
+check('brief 解析 200', parsed.status === 200, JSON.stringify(parsed.json).slice(0, 200))
+check('brief 解析条数与平台', parsed.json.count === 3 && parsed.json.config.platform === 'xiaohongshu', JSON.stringify(parsed.json))
+check('brief 解析预算与时间', parsed.json.config.costCap === 20 && Boolean(parsed.json.config.publishStartAt), JSON.stringify(parsed.json.config))
+const emptyBrief = await call('POST', '/batches/parse', { brief: '' })
+check('空 brief 被拒绝', emptyBrief.status === 400)
+
 /* ---------- 素材 ---------- */
 const scan = await call('POST', '/materials/scan', { dirs: [lib] })
 check('扫描 3 个素材', scan.json.total === 3, JSON.stringify(scan.json.stats))

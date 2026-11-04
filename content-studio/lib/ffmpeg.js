@@ -23,16 +23,20 @@ function candidates(name, explicit, extras = []) {
   if (explicit) list.push(explicit)
   const env = process.env[name === 'ffmpeg' ? 'CONTENT_STUDIO_FFMPEG' : 'CONTENT_STUDIO_FFPROBE']
   if (env) list.push(env)
+  const envDir = process.env.CONTENT_STUDIO_FFMPEG_DIR
+  if (envDir) list.push(join(envDir, fileName))
   list.push(name)
 
   // The plugin's own location: cwd inside the Harness process is the install dir,
   // not the workspace, so relative-to-cwd lookup alone fails in production.
   try {
-    const here = dirname(fileURLToPath(import.meta.url))
+    let base = dirname(fileURLToPath(import.meta.url))
     for (let depth = 0; depth < 4; depth += 1) {
-      const base = depth === 0 ? here : dirname(here)
       list.push(join(base, 'bin', fileName))
       list.push(join(base, 'tools', 'bin', fileName))
+      const parent = dirname(base)
+      if (parent === base) break
+      base = parent
     }
   } catch {
     // ignore: resolution continues with the other candidates
@@ -53,8 +57,6 @@ function candidates(name, explicit, extras = []) {
 
   if (process.env.CONTENT_STUDIO_HOME) list.push(join(process.env.CONTENT_STUDIO_HOME, 'bin', fileName))
   list.push(join(homedir(), '.content-studio', 'bin', fileName))
-  list.push(`C:\\ffmpeg\\bin\\${fileName}`)
-  list.push(`C:\\Program Files\\ffmpeg\\bin\\${fileName}`)
   return [...new Set(list.filter(Boolean))]
 }
 

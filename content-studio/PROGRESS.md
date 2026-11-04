@@ -15,6 +15,26 @@
 | 热重载 | `plugin_manager set_plugin enabled=false` 再 `true` 可加载新代码，**不需要重启 Harness** |
 | 数据目录 | `~/.content-studio`（`providers.json` `materials.json` `bin/` `voice-cache/` `batches/`） |
 
+## 本轮（第 20 轮）：滚动修复 + 一句话创建
+
+- **滚动**：DSH 主面板是固定高度，插件根节点原来没有自己的滚动容器。现在 `.cs-page` 是 `height:100% / overflow-y:auto` 的滚动层，内容放在 `.cs-page-inner`；预览里用 900px 容器验证 `scrollHeight=2060`、`scrollTop` 可改变。
+- **创建流程**：总控台顶部改成「描述你想生产什么」的大输入框 + 素材目录 + 「让 AI 拆解」；AI 返回计划卡（用户消息 / AI 摘要 / 平台、条数、时长、审核、发布时间、成本上限 / assumptions），确认后才创建。完整表单收进「高级设置」，不再默认铺满页面。
+- **解析**：`lib/brief.js` 本地规则解析（条数、平台、时长、每天时间、预算、自动放行）+ 可选 LLM JSON 解析；LLM 失败自动回退并在计划卡里说明。`POST /batches/parse`。
+- **批次列表**：四格统计条改成标题旁的内联计数；批次仍为行列表。
+- **ffmpeg**：修了插件位置向上查找的循环 bug（之前 4 次都停在 `lib/` 和 `content-studio/`，到不了工作区 `tools/bin`）；就绪检查改成紧凑 alert，并加「安装 ffmpeg」按钮：优先从工作区复制到插件安装目录 `bin/`（不可写回退数据目录），否则从 gyan.dev 下载。`POST /tools/install-ffmpeg`。
+- **目录选择**：DSH 的组合选择器只提供 `browse`，直接调 `pickDirectory()` 会报 native capability 错误。改为用 `uiWorkspace.listDirectory` 自己渲染一个目录浏览弹窗（面包屑 + 子目录 + 选择当前目录），不再出现原始报错。
+- **测试**：新增 `test-brief` 31 项；`test-api` 98、`test-client-render` 53，全套 **454 项**通过。
+
+## 本轮（第 19 轮）：UI 与 DSH 宿主对齐
+
+真机装进 DSH Desktop 后，页面能打开但视觉与宿主不协调：控件矮小、无标签的表单、堆叠的卡片和重复告警。这一轮只改表现层，不动业务逻辑：
+
+- **样式层**：`client.js` 注入一份 `content-studio-styles`，全部使用宿主 token（`--dsw-*`）：0.5px 边框、32px 控件、12/13/18px 字阶、8/12px 圆角、语义状态色。
+- **结构**：标题 + 右侧刷新；下划线页签；四格统计条；批次改成行列表；新建批次默认在有批次时折叠，空态才展开；表单单页分「内容规格 / 发布设置 / 素材」三组，每个控件有标签。
+- **状态**：就绪检查改成紧凑的 warning alert；批次动作按状态只显示可用项；成本条、发布包、日志、失败重试沿用同一套按钮和标签。
+- **验证**：`tools/ui-preview.html` + `tools/ui-preview-server.mjs` 用真实 React 组件和假接口在浏览器里检查 960/1200 宽度；`test-client-render` 49 项通过；Impeccable detector 无 findings。
+- **真机**：插件以 `link:` 安装到 DSH Desktop，改完刷新页面即可；不放心可卸载重装。
+
 ## 本轮（第 18 轮）：需求对齐落地
 
 按 [../docs/需求对齐-2026-11-04.md](../docs/需求对齐-2026-11-04.md) 把插件从「设置页工作台」改成「左侧栏主面板」，并补齐本期功能：
@@ -209,22 +229,23 @@ ComfyUI 是本地 LTX 最可能的接入方式，之前**没有任何测试**。
 
 | 命令 | 覆盖 | 结果 |
 |---|---|---|
-| `node tools/check.mjs` | 25 个模块加载 | ✅ |
+| `node tools/check.mjs` | 27 个模块加载 | ✅ |
 | `node tools/test-pipeline.mjs` | 字幕/ASS/WAV/文案/存储/配音 | ✅ 56 |
 | `node tools/test-render.mjs` | EDL + 真渲染 + 循环/转场/BGM/图片/16:9 | ✅ 23 |
 | `node tools/test-media.mjs` | 扫描/索引清理/封面/校验/平台硬规格/去重/图片 | ✅ 50 |
 | `node tools/test-pipeline-e2e.mjs` | 单条全链路 8 步 + 用量核算 | ✅ 34 |
 | `node tools/test-worker.mjs` | 并发/续跑/暂停/去重/自动重试/自动放行/成本上限 | ✅ 34 |
 | `node tools/test-platforms.mjs` | 平台预设与批次配置归一化 | ✅ 22 |
+| `node tools/test-brief.mjs` | 一句话需求解析、LLM 合并、失败回退 | ✅ 31 |
 | `node tools/test-export.mjs` | 发布包 ZIP 结构、CRC、缺失成片守卫 | ✅ 11 |
 | `node tools/test-adapters.mjs` | ComfyUI / 方舟 / 生图 适配器契约 | ✅ 25 |
 | `node tools/stress-worker.mjs 8` | 并发压力（24 条） | ✅ NO FAILURES |
-| `node tools/test-api.mjs` | 真 HTTP：CRUD/媒体/审核/重做/导出/日志/SSE/自动放行 | ✅ 94 |
+| `node tools/test-api.mjs` | 真 HTTP：CRUD/媒体/审核/重做/导出/日志/SSE/自动放行/brief 解析 | ✅ 98 |
 | `node tools/test-activate.mjs` | 真 apply()：路由/effect/续跑/降级 | ✅ 17 |
-| `node tools/test-client-render.mjs` | 真 React 渲染 UI（静态 + 挂载 + 主面板/侧栏注册） | ✅ 49 |
+| `node tools/test-client-render.mjs` | 真 React 渲染 UI（静态 + 挂载 + 主面板/侧栏注册） | ✅ 53 |
 | `node tools/acceptance.mjs` | 5 条批量验收 → `../验收报告.md` | ✅ 5/5 |
 
-合计 415 项断言通过，另有 24 条并发压测零失败。
+合计 454 项断言通过，另有 24 条并发压测零失败。
 
 > `test-client-render` 依赖 `../../tools/react-test/node_modules` 里的 React。
 > 干净环境需先 `cd ../tools/react-test && npm i react@18 react-dom@18 react-test-renderer@18`。
@@ -283,7 +304,7 @@ ComfyUI 是本地 LTX 最可能的接入方式，之前**没有任何测试**。
 | 文案 / 配音 / 字幕 / 渲染 / 封面 / 校验 | `lib/steps/*` | ✅ |
 | 单条编排（断点续跑） | `lib/pipeline.js` | ✅ |
 | 批量队列（并发/暂停/取消/续跑） | `lib/worker.js` | ✅ |
-| HTTP 接口（批次/条目/媒体/SSE/导出/日志） | `lib/api.js` | ✅ 94 项 |
+| HTTP 接口（批次/条目/媒体/SSE/导出/日志/brief） | `lib/api.js` | ✅ 98 项 |
 | 工作台 UI（批次/审核/模型配置） | `client.js` | ⚠️ 仅结构验证 |
 | 启动自动续跑 | `index.js` | 代码就绪 |
 

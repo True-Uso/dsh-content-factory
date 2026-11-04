@@ -343,13 +343,14 @@ node tools/test-pipeline-e2e.mjs  # 单条全链路 + 用量核算
 node tools/test-worker.mjs        # 并发/续跑/暂停/去重/并发配置
 node tools/test-adapters.mjs      # ComfyUI / 方舟 / 生图 适配器
 node tools/test-platforms.mjs     # 平台预设与批次配置
+node tools/test-brief.mjs         # 一句话需求解析
 node tools/test-export.mjs        # 发布包 ZIP 结构与 CRC
 node tools/test-api.mjs           # 真 HTTP 接口
 node tools/test-activate.mjs      # 激活路径
 node tools/test-client-render.mjs # 真 React 渲染 UI
 \`\`\`
 
-各脚本末尾会打印通过的断言数，合计 415 项。
+各脚本末尾会打印通过的断言数，合计 454 项。
 `
 
 await writeFile(join(WORKSPACE, '验收报告.md'), report, 'utf8')
