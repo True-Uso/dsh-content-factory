@@ -44,7 +44,10 @@ const llm = {
     return {
       json: {
         title: '接口测试',
-        narration: [{ id: 's1', text: '第一句。' }, { id: 's2', text: '第二句。' }],
+        narration: [
+          { id: 's1', text: '第一句旁白，用来把这一条内容的时长拉到平台允许的范围。' },
+          { id: 's2', text: '第二句旁白，继续补充信息，保证成片不会太短。' },
+        ],
         description: 'd',
         hashtags: ['#测试'],
         coverText: { main: '接口', sub: '测试' },
@@ -90,6 +93,8 @@ const meta = await call('GET', '/meta')
 check('meta 200', meta.status === 200)
 check('meta 含 llm/tts/image 类型', ['llm', 'tts', 'image'].every((kind) => meta.json.kinds.includes(kind)))
 check('meta 含步骤列表', meta.json.steps.length === 8)
+check('meta 含平台预设', meta.json.platforms?.length === 3 && meta.json.platforms.some((p) => p.id === 'douyin'), JSON.stringify(meta.json.platforms))
+check('meta 含审核模式', meta.json.reviewModes?.some((m) => m.id === 'auto'))
 
 const health = await call('GET', '/health')
 check('health 报告 ffmpeg 可用', health.json.ffmpeg.ok === true)
@@ -115,6 +120,9 @@ const created = await call('POST', '/batches', {
 check('建批次 200', created.status === 200, JSON.stringify(created.json).slice(0, 200))
 const batchId = created.json.batch.id
 check('批次 2 条', created.json.batch.items.length === 2)
+check('批次写入平台', created.json.batch.config.platform === 'douyin', JSON.stringify(created.json.batch.config))
+check('默认审核模式 required', created.json.batch.config.reviewMode === 'required')
+check('默认发布间隔 1440', created.json.batch.config.publishIntervalMinutes === 1440)
 
 const noTitle = await call('POST', '/batches', { count: 1 })
 check('缺主题被拒绝', noTitle.status === 400)
@@ -162,6 +170,29 @@ check('Range 长度 1024', (await range.arrayBuffer()).byteLength === 1024)
 
 const cover = await fetch(`${base}/media/${batchId}/${itemId}/07-cover/cover-vertical.png`)
 check('封面可访问', cover.status === 200 && cover.headers.get('content-type') === 'image/png')
+
+/* ---------- 发布包与生产日志 ---------- */
+const itemZip = await fetch(`${base}/items/${itemId}/export`)
+const itemZipBytes = Buffer.from(await itemZip.arrayBuffer())
+check('条目导出 200', itemZip.status === 200, String(itemZip.status))
+check('条目导出是 zip', itemZip.headers.get('content-type') === 'application/zip' && itemZipBytes.readUInt32LE(0) === 0x04034b50)
+check('条目导出包含成片', itemZipBytes.includes(Buffer.from('master.mp4')))
+
+const batchZip = await fetch(`${base}/batches/${batchId}/export`)
+const batchZipBytes = Buffer.from(await batchZip.arrayBuffer())
+check('整批导出 200', batchZip.status === 200, String(batchZip.status))
+check('整批导出带条目目录', batchZipBytes.includes(Buffer.from('item-001/master.mp4')))
+
+const batchLog = await call('GET', `/batches/${batchId}/log`)
+check('批次日志 200', batchLog.status === 200)
+check('批次日志含创建记录', String(batchLog.json.batch).includes('创建批次'))
+check('批次日志含条目日志', batchLog.json.items.length === 2 && String(batchLog.json.items[0].log).includes('完成'))
+const itemLog = await call('GET', `/items/${itemId}/log`)
+check('条目日志 200', itemLog.status === 200 && String(itemLog.json.log).includes('完成'))
+
+/* ---------- 批次配置更新 ---------- */
+const configUpdate = await call('POST', `/batches/${batchId}/config`, { costCap: 5 })
+check('更新成本上限 200', configUpdate.status === 200 && configUpdate.json.batch.config.costCap === 5, JSON.stringify(configUpdate.json))
 
 const traversal = await call('GET', `/media/${batchId}/${itemId}/..%2F..%2Fbatch.json`)
 check('路径穿越被拒绝', traversal.status === 403 || traversal.status === 404, String(traversal.status))
@@ -360,6 +391,21 @@ await call('PUT', '/providers/test-video', { ...videoProvider, enabled: false })
 const disabledTest = await call('POST', '/providers/test-video/test', {})
 check('停用的 provider 不能测试', disabledTest.status === 409, String(disabledTest.status))
 videoMock.close()
+
+/* ---------- 自动放行批次 ---------- */
+const autoCreated = await call('POST', '/batches', {
+  title: '自动放行批次', count: 1,
+  config: { topic: '旅行', targetSec: 12, materialMode: 'pool', fps: 30, voice: 'mock', reviewMode: 'auto' },
+})
+const autoBatchId = autoCreated.json.batch.id
+check('自动放行配置写入', autoCreated.json.batch.config.reviewMode === 'auto')
+await call('POST', `/batches/${autoBatchId}/start`)
+await runner.waitIdle()
+const autoDetail = await call('GET', `/batches/${autoBatchId}`)
+check('自动放行条目直接通过', autoDetail.json.batch.items[0].status === 'approved', autoDetail.json.batch.items[0].status)
+check('自动放行批次完成', autoDetail.json.batch.status === 'done', autoDetail.json.batch.status)
+check('自动放行记录放行方式', autoDetail.json.batch.items[0].review?.mode === 'auto', JSON.stringify(autoDetail.json.batch.items[0].review))
+await call('DELETE', `/batches/${autoBatchId}?purge=1`)
 
 /* ---------- SSE：真的能收到进度事件 ---------- */
 const sseBatch = await call('POST', '/batches', {

@@ -1,7 +1,7 @@
 {
   "meta": {
-    "title": "Content Studio",
-    "description": "Provider registry for batch content production: Ark Seedance, local ComfyUI and any custom HTTP video service."
+    "title": "Content Production",
+    "description": "Batch-produce social videos: copy, voice, editing, covers, validation, human review and publish-package export."
   },
   "title": "Content Studio",
   "subtitle": "Video providers",

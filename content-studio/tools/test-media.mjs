@@ -210,6 +210,23 @@ const longTitle = await validateItem({
 })
 check('标题过长只告警', longTitle.status !== 'failed' && longTitle.warnings.some((w) => w.id === 'L3.titleLength'))
 
+// 平台封面尺寸 → 硬失败
+const wrongCover = await validateItem({
+  tools, itemDir,
+  platform: { id: 'test', coverWidth: 1, coverHeight: 1, minDurationSec: 0, maxDurationSec: 999 },
+  ctx: { script, plan, masterPath: rendered.masterPath, cover: cover.files, voicePath },
+})
+check('平台封面尺寸不符判失败', wrongCover.status === 'failed' && wrongCover.errors.some((e) => e.id === 'L2.coverSize'), JSON.stringify(wrongCover.errors))
+
+// 平台时长区间 → 硬失败（没有平台时同一项只警告）
+const shortForPlatform = await validateItem({
+  tools, itemDir,
+  platform: { id: 'test', coverWidth: 1080, coverHeight: 1920, minDurationSec: 10, maxDurationSec: 20 },
+  ctx: { script, plan, masterPath: rendered.masterPath, cover: cover.files, voicePath },
+})
+check('平台时长区间不符判失败', shortForPlatform.status === 'failed' && shortForPlatform.errors.some((e) => e.id === 'L2.durationRange'), JSON.stringify(shortForPlatform.errors))
+check('报告带平台 id', shortForPlatform.platform === 'test')
+
 /* ---------------- 图片素材探测 ---------------- */
 const imgDir = await mkdtemp(join(tmpdir(), 'cs-img-'))
 await ffmpeg(tools, ['-hide_banner', '-loglevel', 'error', '-y', '-f', 'lavfi', '-i', 'color=c=navy:s=540x960:d=1', '-frames:v', '1', join(imgDir, 'still.png')])

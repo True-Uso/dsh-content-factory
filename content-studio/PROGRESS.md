@@ -15,6 +15,23 @@
 | 热重载 | `plugin_manager set_plugin enabled=false` 再 `true` 可加载新代码，**不需要重启 Harness** |
 | 数据目录 | `~/.content-studio`（`providers.json` `materials.json` `bin/` `voice-cache/` `batches/`） |
 
+## 本轮（第 18 轮）：需求对齐落地
+
+按 [../docs/需求对齐-2026-11-04.md](../docs/需求对齐-2026-11-04.md) 把插件从「设置页工作台」改成「左侧栏主面板」，并补齐本期功能：
+
+- **入口**：客户端改为注册 `main` 面板 + `sidebar.panellist` 图标；不再注册 `settings.section`。
+- **批次字段**：平台（抖音/小红书/视频号）、发布起点、发布间隔、审核模式（required/auto）、成本上限；`lib/platforms.js` 统一归一化。
+- **校验**：平台画幅/时长区间/封面尺寸为硬校验，文案长度仍只警告；报告带平台 id。
+- **自动放行**：`reviewMode=auto` 的条目校验通过后直接 `approved`，写入 `review.json`（`mode: auto`）。
+- **自动重试**：失败自动重跑一次，`item.autoRetries` 记录，事件 `item:retry`；仍失败才进 failures。
+- **成本护栏**：批次累计成本到 80% 发 `batch:cost-warning`，到 100% 暂停并记 `pauseReason: cost_cap`；可改上限后继续。
+- **发布包**：`lib/zip.js`（store ZIP + CRC32）+ `lib/export.js`；接口 `GET /items/:id/export`、`GET /batches/:id/export`。
+- **生产日志**：`GET /batches/:id/log` 与 `GET /items/:id/log`；页面批次详情可展开查看。
+- **分发**：`package.json` 加 `engines.dsh`、ffmpeg 平台依赖；`tools/make-index.mjs` 生成 format-1 索引；步骤见 [../docs/发布到GitHub.md](../docs/发布到GitHub.md)。
+- **测试**：新增 `test-platforms`（22）、`test-export`（11）；`test-worker` +10、`test-api` +19、`test-client-render` +5、`test-media` +3。全套 **415 项**通过。
+
+**未验证**：还没有装进真实 DSH Desktop 0.2.1-rc.4 验证 `main` / `sidebar.panellist` 槽位和 Host `webServer` 路由；这是下一轮第一件事。
+
 ## 本轮（第 17 轮）：迁移收尾与可复现
 
 仓库从 `D:\Projects\内容创作` 搬到 `D:\Projects\内容生产\内容创作` 后，做了一次收尾：
@@ -192,20 +209,22 @@ ComfyUI 是本地 LTX 最可能的接入方式，之前**没有任何测试**。
 
 | 命令 | 覆盖 | 结果 |
 |---|---|---|
-| `node tools/check.mjs` | 22 个模块加载 | ✅ |
+| `node tools/check.mjs` | 25 个模块加载 | ✅ |
 | `node tools/test-pipeline.mjs` | 字幕/ASS/WAV/文案/存储/配音 | ✅ 56 |
 | `node tools/test-render.mjs` | EDL + 真渲染 + 循环/转场/BGM/图片/16:9 | ✅ 23 |
-| `node tools/test-media.mjs` | 扫描/索引清理/封面/校验/去重/图片 | ✅ 47 |
+| `node tools/test-media.mjs` | 扫描/索引清理/封面/校验/平台硬规格/去重/图片 | ✅ 50 |
 | `node tools/test-pipeline-e2e.mjs` | 单条全链路 8 步 + 用量核算 | ✅ 34 |
-| `node tools/test-worker.mjs` | 批量并发/续跑/暂停/去重/并发配置 | ✅ 24 |
+| `node tools/test-worker.mjs` | 并发/续跑/暂停/去重/自动重试/自动放行/成本上限 | ✅ 34 |
+| `node tools/test-platforms.mjs` | 平台预设与批次配置归一化 | ✅ 22 |
+| `node tools/test-export.mjs` | 发布包 ZIP 结构、CRC、缺失成片守卫 | ✅ 11 |
 | `node tools/test-adapters.mjs` | ComfyUI / 方舟 / 生图 适配器契约 | ✅ 25 |
 | `node tools/stress-worker.mjs 8` | 并发压力（24 条） | ✅ NO FAILURES |
-| `node tools/test-api.mjs` | 真 HTTP：CRUD/媒体/审核/重做/SSE/模型测试/预检/密钥/状态守卫 | ✅ 75 |
+| `node tools/test-api.mjs` | 真 HTTP：CRUD/媒体/审核/重做/导出/日志/SSE/自动放行 | ✅ 94 |
 | `node tools/test-activate.mjs` | 真 apply()：路由/effect/续跑/降级 | ✅ 17 |
-| `node tools/test-client-render.mjs` | 真 React 渲染 UI（静态 + 挂载） | ✅ 44 |
+| `node tools/test-client-render.mjs` | 真 React 渲染 UI（静态 + 挂载 + 主面板/侧栏注册） | ✅ 49 |
 | `node tools/acceptance.mjs` | 5 条批量验收 → `../验收报告.md` | ✅ 5/5 |
 
-合计 345 项断言通过，另有 24 条并发压测零失败。
+合计 415 项断言通过，另有 24 条并发压测零失败。
 
 > `test-client-render` 依赖 `../../tools/react-test/node_modules` 里的 React。
 > 干净环境需先 `cd ../tools/react-test && npm i react@18 react-dom@18 react-test-renderer@18`。
@@ -233,9 +252,9 @@ ComfyUI 是本地 LTX 最可能的接入方式，之前**没有任何测试**。
 ## 已知未做
 
 - 真实第三方 API Key 未验证（无 key）
-- 不是独立进程（关掉 Harness 不继续渲染）
-- FR-12 运行中成本护栏（80% 告警 / 100% 自动暂停 / 单条 3 倍异常）未做
-- FR-14 的 `api.log` / `render.log` / UI 红点未做（`batch.log`、`item.log` 已有）
+- 还没有装进真实 DSH Desktop 0.2.1-rc.4 验证 `main` / `sidebar.panellist` 槽位与 Host `webServer` 路由
+- 不是独立进程（关掉 DSH 不继续渲染）
+- `api.log` / `render.log` 与系统通知未做（`batch.log` / `item.log` + 页面日志已有）
 - UI 只在 React test-renderer 里渲染过，未在真实浏览器/宿主里做视觉验收
 
 ## 本轮修的缺陷
@@ -264,16 +283,16 @@ ComfyUI 是本地 LTX 最可能的接入方式，之前**没有任何测试**。
 | 文案 / 配音 / 字幕 / 渲染 / 封面 / 校验 | `lib/steps/*` | ✅ |
 | 单条编排（断点续跑） | `lib/pipeline.js` | ✅ |
 | 批量队列（并发/暂停/取消/续跑） | `lib/worker.js` | ✅ |
-| HTTP 接口（批次/条目/媒体/SSE） | `lib/api.js` | ✅ 47 项 |
+| HTTP 接口（批次/条目/媒体/SSE/导出/日志） | `lib/api.js` | ✅ 94 项 |
 | 工作台 UI（批次/审核/模型配置） | `client.js` | ⚠️ 仅结构验证 |
 | 启动自动续跑 | `index.js` | 代码就绪 |
 
 ## 待办
 
-1. **真实模型联调**（需要 key + Harness）：方舟 Seedance 的模型 ID/响应字段、百炼字级时间戳、ChatGPT 文案契约。
-2. **FR-13 独立 worker 进程**：持久化队列 + 任务级锁 + 优雅退出 + 崩溃退避，关掉 Harness 也能继续渲染。
-3. **FR-12 成本护栏 / FR-14 告警**：80%/100% 两档暂停、单条异常标记、`api.log`/`render.log`、批次红点。
-4. **P4 验收**：真实浏览器走查 UI + 20 条批量压测 + 杀进程续跑。
+1. **装进真实 DSH Desktop 验证**：左侧栏图标、主面板、Host `webServer` 路由、ffmpeg 依赖解析；这是下一步的第一件事。
+2. **真实模型联调**（需要 key）：方舟 Seedance 的模型 ID/响应字段、百炼字级时间戳、ChatGPT 文案契约。
+3. **FR-13 独立 worker 进程**：持久化队列 + 任务级锁 + 优雅退出 + 崩溃退避，关掉 DSH 也能继续渲染。
+4. **真实浏览器 UI 走查 + P4 压测**：20 条批量、杀进程续跑、成本上限极限验证。
 
 ## 已知偏差
 

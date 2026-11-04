@@ -152,6 +152,90 @@ check('批次配置的并发度生效', runnerC.concurrency === 4, String(runner
 runnerC.cancelBatch(batchC.id)
 await runnerC.waitIdle()
 
+/* ---------- 自动重试 / 自动放行 / 成本上限 ---------- */
+let flaky = true
+const flakyLlm = {
+  async complete() {
+    if (flaky) {
+      flaky = false
+      throw new Error('transient failure')
+    }
+    return {
+      json: {
+        title: '重试测试',
+        narration: [{ id: 's1', text: '重试后面的这一句，用来验证失败后能继续。' }],
+        description: 'd',
+        hashtags: ['#测试'],
+        coverText: { main: '重试', sub: '测试' },
+        coverPrompt: 'plain background, no text',
+        shotList: [{ id: 'a', intent: '街景', source: 'library', durationSec: 2 }],
+      },
+    }
+  },
+}
+const retryBatch = await createBatch({ title: '自动重试', count: 1, config: { topic: '日常', targetSec: 10, materialMode: 'pool', fps: 30, voice: 'mock' } })
+const retryEvents = []
+const retryRunner = createRunner({
+  concurrency: 1, tools, materials: scanned.index.entries, providers: { llm: flakyLlm, tts },
+  onEvent: (event) => retryEvents.push(event),
+})
+await retryRunner.startBatch(retryBatch.id)
+await retryRunner.waitIdle()
+const retried = (await loadItem(retryBatch.id, retryBatch.items[0].id)).item
+check('失败后自动重试一次并完成', retried.status === 'review_pending', JSON.stringify({ status: retried.status, error: retried.error }))
+check('记录自动重试次数', retried.autoRetries === 1, String(retried.autoRetries))
+check('发出重试事件', retryEvents.some((event) => event.type === 'item:retry'))
+check('最终失败列表为空', retryRunner.snapshot().failures.length === 0, JSON.stringify(retryRunner.snapshot().failures))
+
+const autoBatch = await createBatch({ title: '自动放行', count: 1, config: { topic: '日常', targetSec: 10, materialMode: 'pool', fps: 30, voice: 'mock', reviewMode: 'auto' } })
+const autoRunner = createRunner({ concurrency: 1, tools, materials: scanned.index.entries, providers: { llm, tts } })
+await autoRunner.startBatch(autoBatch.id)
+await autoRunner.waitIdle()
+const autoItem = (await loadItem(autoBatch.id, autoBatch.items[0].id)).item
+const autoReview = JSON.parse(await readFile(join(autoItem.dir, '09-review', 'review.json'), 'utf8'))
+const autoAfter = await loadBatch(autoBatch.id)
+check('自动放行直接到已通过', autoItem.status === 'approved', autoItem.status)
+check('自动放行写入审核记录', autoReview.decision === 'approved' && autoReview.mode === 'auto', JSON.stringify(autoReview))
+check('自动放行批次完成', autoAfter.status === 'done', autoAfter.status)
+
+let costCalls = 0
+const costLlm = {
+  async complete() {
+    costCalls += 1
+    return {
+      json: {
+        title: `成本测试 ${costCalls}`,
+        narration: [{ id: 's1', text: `成本测试第${costCalls}句，故意不复用缓存。` }],
+        description: 'd',
+        hashtags: ['#测试'],
+        coverText: { main: '成本', sub: '测试' },
+        coverPrompt: 'plain background, no text',
+        shotList: [{ id: 'a', intent: '街景', source: 'library', durationSec: 2 }],
+      },
+    }
+  },
+}
+const capBatch = await createBatch({
+  title: '成本上限', count: 2,
+  config: { topic: '日常', targetSec: 10, materialMode: 'pool', fps: 30, voice: 'mock', costCap: 1, pricing: { ttsPerKChars: 1000 } },
+})
+const capRunner = createRunner({ concurrency: 1, tools, materials: scanned.index.entries, providers: { llm: costLlm, tts } })
+await capRunner.startBatch(capBatch.id)
+let capPaused = false
+for (let index = 0; index < 100; index += 1) {
+  const current = await loadBatch(capBatch.id)
+  if (current.status === 'paused' && current.pauseReason === 'cost_cap') {
+    capPaused = true
+    break
+  }
+  await new Promise((resolve) => setTimeout(resolve, 50))
+}
+check('成本达上限自动暂停', capPaused, JSON.stringify((await loadBatch(capBatch.id)).status))
+check('暂停原因记录为 cost_cap', (await loadBatch(capBatch.id)).pauseReason === 'cost_cap')
+check('达到上限后不再启动剩余条目', (await loadBatch(capBatch.id)).items.some((item) => item.status === 'pending'))
+capRunner.cancelBatch(capBatch.id)
+await capRunner.waitIdle()
+
 /* ---------- 暂停 / 取消 ---------- */
 const batch3 = await createBatch({ title: '暂停批次', count: 2, config: { topic: '日常', targetSec: 10, materialMode: 'pool', fps: 30, voice: 'mock' } })
 const runner3 = createRunner({ concurrency: 1, tools, materials: scanned.index.entries, providers: { llm, tts } })

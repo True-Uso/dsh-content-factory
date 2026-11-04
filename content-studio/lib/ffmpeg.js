@@ -17,7 +17,7 @@ const run = promisify(execFile)
  */
 const CACHE = new Map()
 
-function candidates(name, explicit) {
+function candidates(name, explicit, extras = []) {
   const fileName = `${name}.exe`
   const list = []
   if (explicit) list.push(explicit)
@@ -48,11 +48,24 @@ function candidates(name, explicit) {
     dir = parent
   }
 
+  // npm-installed platform binary (ADR 0003); explicit/PATH/workspace still win.
+  for (const extra of extras) if (extra) list.push(extra)
+
   if (process.env.CONTENT_STUDIO_HOME) list.push(join(process.env.CONTENT_STUDIO_HOME, 'bin', fileName))
   list.push(join(homedir(), '.content-studio', 'bin', fileName))
   list.push(`C:\\ffmpeg\\bin\\${fileName}`)
   list.push(`C:\\Program Files\\ffmpeg\\bin\\${fileName}`)
   return [...new Set(list.filter(Boolean))]
+}
+
+async function installerPath(pkg) {
+  try {
+    const mod = await import(pkg)
+    const value = mod?.default || mod
+    return typeof value?.path === 'string' ? value.path : null
+  } catch {
+    return null
+  }
 }
 
 async function works(command) {
@@ -70,7 +83,11 @@ export async function resolveTools(config = {}) {
   if (CACHE.has(key)) return CACHE.get(key)
 
   const result = { ffmpeg: null, ffprobe: null, ok: false, error: null, searched: [] }
-  for (const candidate of candidates('ffmpeg', config.ffmpegPath)) {
+  const [ffmpegInstalled, ffprobeInstalled] = await Promise.all([
+    installerPath('@ffmpeg-installer/ffmpeg'),
+    installerPath('@ffprobe-installer/ffprobe'),
+  ])
+  for (const candidate of candidates('ffmpeg', config.ffmpegPath, [ffmpegInstalled])) {
     result.searched.push(candidate)
     if (candidate.includes('/') || candidate.includes('\\')) {
       if (!existsSync(candidate)) continue
@@ -80,7 +97,7 @@ export async function resolveTools(config = {}) {
       break
     }
   }
-  for (const candidate of candidates('ffprobe', config.ffprobePath)) {
+  for (const candidate of candidates('ffprobe', config.ffprobePath, [ffprobeInstalled])) {
     if (candidate.includes('/') || candidate.includes('\\')) {
       if (!existsSync(candidate)) continue
     }

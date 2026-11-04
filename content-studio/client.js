@@ -72,6 +72,15 @@ window.__ModuleLoader__.load({
     const STATUS_TONE = {
       review_pending: 'warn', approved: 'ok', failed: 'bad', rejected: 'bad', running: '', pending: '', cancelled: '',
     }
+    const BATCH_STATUS_ZH = {
+      draft: '草稿', queued: '排队', running: '运行中', paused: '已暂停', review: '待审核',
+      done: '已完成', partial: '部分完成', failed: '失败', cancelled: '已取消',
+    }
+    const BATCH_STATUS_TONE = {
+      running: '', paused: 'warn', review: 'warn', done: 'ok', failed: 'bad', partial: 'warn',
+    }
+    const REVIEW_MODE_ZH = { required: '需人工审核', auto: '自动放行' }
+    const PAUSE_REASON_ZH = { user: '手动暂停', cost_cap: '成本达到上限' }
     const STEP_ZH = {
       script: '文案', voice: '配音', subtitle: '字幕', visual: '画面',
       plan: '剪辑方案', render: '渲染', cover: '封面', validate: '校验',
@@ -102,19 +111,57 @@ window.__ModuleLoader__.load({
       return h('span', { style: S.badge(tone) }, children)
     }
 
+    function platformLabel(platforms, id) {
+      return (platforms || []).find((platform) => platform.id === id)?.label || id || '—'
+    }
+
+    async function downloadZip(path, filename) {
+      const res = await fetch(API + path)
+      if (!res.ok) {
+        const text = await res.text()
+        let message = `${res.status} ${res.statusText}`
+        try { message = JSON.parse(text).error || message } catch { /* keep status text */ }
+        throw new Error(message)
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = filename
+      document.body.appendChild(anchor)
+      anchor.click()
+      anchor.remove()
+      setTimeout(() => URL.revokeObjectURL(url), 10_000)
+    }
+
     /* ------------------------------------------------------------------ */
     /* 批次                                                            */
     /* ------------------------------------------------------------------ */
-    function NewBatchForm({ onCreated, groups, health, services }) {
+    function NewBatchForm({ onCreated, groups, health, services, platforms = [] }) {
       const [form, setForm] = useState({
-        title: '', topic: '', count: 5, dirs: '', group: '', targetSec: 35,
+        title: '', topic: '', count: 5, dirs: '', group: '', targetSec: 26,
         aspectRatio: '9:16', materialMode: 'folder', shotCount: 8, voice: '', transition: 'cut', concurrency: '',
+        platform: 'douyin', publishStartAt: '', publishIntervalMinutes: 1440, reviewMode: 'required', costCap: '',
       })
       const [busy, setBusy] = useState('')
       const [message, setMessage] = useState(null)
       const [scanned, setScanned] = useState(null)
 
       const set = (key) => (event) => setForm((current) => ({ ...current, [key]: event.target.value }))
+      const platformPreset = useMemo(
+        () => (platforms || []).find((platform) => platform.id === form.platform),
+        [platforms, form.platform],
+      )
+      const changePlatform = (event) => {
+        const id = event.target.value
+        const preset = (platforms || []).find((platform) => platform.id === id)
+        setForm((current) => ({
+          ...current,
+          platform: id,
+          aspectRatio: preset?.aspectRatio || current.aspectRatio,
+          targetSec: preset?.targetSec || current.targetSec,
+        }))
+      }
 
       const dirList = useMemo(
         () => form.dirs.split(/[\n;,]/).map((s) => s.trim()).filter(Boolean),
@@ -142,7 +189,8 @@ window.__ModuleLoader__.load({
           const config = {
             topic: form.topic || form.title,
             style: '',
-            targetSec: Number(form.targetSec) || 35,
+            platform: form.platform,
+            targetSec: Number(form.targetSec) || 26,
             aspectRatio: form.aspectRatio,
             materialMode: form.materialMode,
             group: form.group || undefined,
@@ -150,6 +198,10 @@ window.__ModuleLoader__.load({
             voice: form.voice || undefined,
             transition: form.transition,
             concurrency: Number(form.concurrency) > 0 ? Number(form.concurrency) : undefined,
+            publishStartAt: form.publishStartAt || null,
+            publishIntervalMinutes: Number(form.publishIntervalMinutes) || 0,
+            reviewMode: form.reviewMode,
+            costCap: Number(form.costCap) > 0 ? Number(form.costCap) : null,
           }
           const result = await api('POST', '/batches', { title: form.title || form.topic, count: Number(form.count) || 1, config })
           const warnings = result.preflight?.warnings || []
@@ -177,6 +229,9 @@ window.__ModuleLoader__.load({
           ? h('div', { style: { ...S.muted, color: '#f85149' } }, health.ffmpeg.error || 'ffmpeg 不可用')
           : null,
         h('div', { style: S.row },
+          h('select', { style: { ...S.input, flex: '0 0 110px' }, value: form.platform, onChange: changePlatform },
+            (platforms.length > 0 ? platforms : [{ id: 'douyin', label: '抖音' }]).map((platform) =>
+              h('option', { key: platform.id, value: platform.id }, platform.label))),
           h('input', { style: { ...S.input, flex: '2 1 220px' }, placeholder: '主题（必填）', value: form.topic, onChange: set('topic') }),
           h('input', { style: { ...S.input, flex: '1 1 80px' }, type: 'number', min: 1, max: 200, placeholder: '数量', value: form.count, onChange: set('count') }),
           h('input', { style: { ...S.input, flex: '1 1 90px' }, type: 'number', placeholder: '目标秒数', value: form.targetSec, onChange: set('targetSec') }),
@@ -198,6 +253,27 @@ window.__ModuleLoader__.load({
             style: { ...S.input, flex: '0 0 90px' }, type: 'number', min: 1, max: 8, placeholder: '并发',
             value: form.concurrency, onChange: set('concurrency'),
           }),
+        ),
+        h('div', { style: S.row },
+          h('span', { style: S.muted }, '发布设置'),
+          h('input', {
+            style: { ...S.input, flex: '1 1 190px' }, type: 'datetime-local',
+            title: '计划发布起点（只记录，不自动发布）', value: form.publishStartAt, onChange: set('publishStartAt'),
+          }),
+          h('input', {
+            style: { ...S.input, flex: '0 0 120px' }, type: 'number', min: 0, placeholder: '间隔（分钟）',
+            value: form.publishIntervalMinutes, onChange: set('publishIntervalMinutes'),
+          }),
+          h('select', { style: { ...S.input, flex: '0 0 130px' }, value: form.reviewMode, onChange: set('reviewMode') },
+            h('option', { value: 'required' }, '需人工审核'),
+            h('option', { value: 'auto' }, '自动放行')),
+          h('input', {
+            style: { ...S.input, flex: '0 0 120px' }, type: 'number', min: 0, step: '0.01', placeholder: '成本上限 ¥',
+            value: form.costCap, onChange: set('costCap'),
+          }),
+          platformPreset
+            ? h('span', { style: S.muted }, `标题上限 ${platformPreset.titleMaxLength} 字（仅提示）`)
+            : null,
         ),
         h('textarea', {
           style: { ...S.input, minHeight: 56, width: '100%', boxSizing: 'border-box', fontFamily: 'inherit' },
@@ -288,10 +364,61 @@ window.__ModuleLoader__.load({
       return h('div', { style: S.muted }, `用量：${parts.join(' · ')} —— ${price}`)
     }
 
-    function BatchDetail({ batchId, onOpenReview, refreshKey, onDeleted }) {
+    function CostBar({ totals }) {
+      if (!totals || !totals.costCap) return null
+      const spent = Number(totals.cost?.total) || 0
+      const pct = Math.min(100, Math.round((totals.capRatio || 0) * 100))
+      const tone = totals.capReached ? '#f85149' : totals.capWarning ? '#d29922' : 'currentColor'
+      return h('div', { style: S.col },
+        h('div', { style: S.spread },
+          h('span', { style: { fontSize: 12 } }, `成本上限 ¥${totals.costCap.toFixed(2)}`),
+          h('span', { style: { ...S.muted, color: tone } },
+            totals.cost?.priced ? `已用 ¥${spent.toFixed(2)} · ${pct}%` : '未配置价目表，成本仍为 0')),
+        h('div', { style: S.progress },
+          h('div', { style: { ...S.progressFill(Math.min(1, totals.capRatio || 0)), background: tone } })),
+        totals.capReached
+          ? h('div', { style: { ...S.muted, color: '#f85149' } }, '已达到成本上限，队列会暂停，等人工提高上限后继续')
+          : totals.capWarning
+            ? h('div', { style: { ...S.muted, color: '#d29922' } }, '已使用 80% 以上')
+            : null,
+      )
+    }
+
+    function LogViewer({ batchId, onError }) {
+      const [data, setData] = useState(null)
+      const [busy, setBusy] = useState(false)
+      const load = useCallback(async () => {
+        setBusy(true)
+        try {
+          setData(await api('GET', `/batches/${batchId}/log`))
+        } catch (error) {
+          onError?.(error.message)
+        } finally {
+          setBusy(false)
+        }
+      }, [batchId, onError])
+      useEffect(() => { load() }, [load])
+      if (!data) return h('div', { style: S.muted }, busy ? '读取日志…' : '')
+      return h('div', { style: S.card },
+        h('div', { style: S.spread },
+          h('strong', { style: { fontSize: 13 } }, '生产日志'),
+          h('button', { style: S.btn, onClick: load }, busy ? '刷新中…' : '刷新'),
+        ),
+        h('div', { style: S.muted }, '批次日志'),
+        h('pre', { style: S.pre }, data.batch || '（空）'),
+        (data.items || []).map((item) => h('details', { key: item.id, style: { marginTop: 8 } },
+          h('summary', { style: { fontSize: 12, cursor: 'pointer' } }, `${String(item.seq || '').padStart(2, '0')} ${item.id}`),
+          h('pre', { style: S.pre }, item.log || '（空）'),
+        )),
+      )
+    }
+
+    function BatchDetail({ batchId, onOpenReview, refreshKey, onDeleted, platforms = [] }) {
       const [detail, setDetail] = useState(null)
       const [error, setError] = useState('')
       const [busy, setBusy] = useState('')
+      const [showLog, setShowLog] = useState(false)
+      const [exporting, setExporting] = useState('')
 
       const load = useCallback(async () => {
         try {
@@ -333,6 +460,30 @@ window.__ModuleLoader__.load({
         if (failed.length > 0) setError(`部分通过失败：${failed.join('；')}`)
       }
 
+      const exportBatch = async () => {
+        setExporting('batch')
+        setError('')
+        try {
+          await downloadZip(`/batches/${batchId}/export`, `content-studio-${batchId}.zip`)
+        } catch (e) {
+          setError(e.message)
+        } finally {
+          setExporting('')
+        }
+      }
+
+      const exportItem = async (item) => {
+        setExporting(item.id)
+        setError('')
+        try {
+          await downloadZip(`/items/${item.id}/export`, `content-studio-item-${String(item.seq).padStart(3, '0')}.zip`)
+        } catch (e) {
+          setError(e.message)
+        } finally {
+          setExporting('')
+        }
+      }
+
       if (error) return h('div', { style: S.card }, `读取失败：${error}`)
       if (!detail) return h('div', { style: S.muted }, '读取中…')
 
@@ -346,12 +497,16 @@ window.__ModuleLoader__.load({
         h('div', { style: S.spread },
           h('div', { style: S.row },
             h('strong', { style: { fontSize: 13 } }, batch.title),
-            h(Badge, { tone: STATUS_TONE[batch.status] || '' }, batch.status),
+            h(Badge, { tone: BATCH_STATUS_TONE[batch.status] || '' }, BATCH_STATUS_ZH[batch.status] || batch.status),
+            h('span', { style: S.muted }, platformLabel(platforms, batch.config?.platform)),
+            h('span', { style: S.muted }, REVIEW_MODE_ZH[batch.config?.reviewMode] || '需人工审核'),
             h('span', { style: S.muted }, `${batch.items.length} 条`),
             Object.entries(counts).map(([status, count]) =>
               h('span', { key: status, style: S.muted }, `${ITEM_STATUS_ZH[status] || status} ${count}`)),
           ),
           h('div', { style: S.row },
+            h('button', { style: S.btnOn, disabled: exporting === 'batch', onClick: exportBatch }, exporting === 'batch' ? '导出中…' : '导出整批'),
+            h('button', { style: S.btn, onClick: () => setShowLog((open) => !open) }, showLog ? '收起日志' : '生产日志'),
             h('button', { style: S.btn, onClick: () => act('start', `/batches/${batch.id}/start`) }, '开始'),
             h('button', { style: S.btn, onClick: () => act('pause', `/batches/${batch.id}/pause`) }, '暂停'),
             h('button', { style: S.btn, onClick: () => act('resume', `/batches/${batch.id}/resume`) }, '继续'),
@@ -376,19 +531,61 @@ window.__ModuleLoader__.load({
             }, '删除'),
           ),
         ),
+        h('div', { style: S.muted },
+          batch.config?.publishStartAt
+            ? `计划发布 ${new Date(batch.config.publishStartAt).toLocaleString('zh-CN')} · 间隔 ${batch.config.publishIntervalMinutes} 分钟`
+            : '未设置计划发布时间（只记录，不自动发布）'),
+        batch.status === 'paused' && batch.pauseReason
+          ? h('div', { style: { ...S.card, borderColor: 'color-mix(in srgb, #d29922 55%, transparent)' } },
+              h('span', { style: { fontSize: 12, color: '#d29922' } }, `已暂停：${PAUSE_REASON_ZH[batch.pauseReason] || batch.pauseReason}`),
+              batch.pauseReason === 'cost_cap'
+                ? h('button', {
+                    style: S.btnOn,
+                    disabled: busy === 'cap',
+                    onClick: async () => {
+                      const value = window.prompt('新的成本上限（¥）', String(batch.config?.costCap || ''))
+                      if (!value) return
+                      setBusy('cap')
+                      try {
+                        await api('POST', `/batches/${batch.id}/config`, { costCap: Number(value) })
+                        await api('POST', `/batches/${batch.id}/resume`)
+                        await load()
+                      } catch (e) {
+                        setError(e.message)
+                      } finally {
+                        setBusy('')
+                      }
+                    },
+                  }, '提高上限并继续')
+                : null,
+            )
+          : null,
         batch.items.some((item) => item.status === 'running') ? h('div', { style: S.muted }, '有任务正在运行，可点刷新查看进度') : null,
         h(UsageLine, { totals: batch.totals }),
+        h(CostBar, { totals: batch.totals }),
+        showLog ? h(LogViewer, { batchId: batch.id, onError: setError }) : null,
         h('div', { style: S.grid },
           batch.items.map((item) =>
             h('div', { key: item.id, style: S.card },
               h('div', { style: S.spread },
                 h('span', { style: { fontSize: 12, fontWeight: 600 } }, `${String(item.seq).padStart(2, '0')} ${item.title || '（未命名）'}`),
-                h(Badge, { tone: STATUS_TONE[item.status] || '' }, ITEM_STATUS_ZH[item.status] || item.status),
+                h('div', { style: S.row },
+                  item.autoRetries ? h('span', { style: S.muted }, `自动重试 ${item.autoRetries}`) : null,
+                  h(Badge, { tone: STATUS_TONE[item.status] || '' }, ITEM_STATUS_ZH[item.status] || item.status),
+                ),
               ),
               h(StepStrip, { steps: item.steps }),
-              item.status === 'review_pending'
-                ? h('button', { style: S.btnOn, onClick: () => onOpenReview(item.id, batch.items.filter((i) => i.status === 'review_pending').map((i) => i.id)) }, '去审核')
-                : null,
+              h('div', { style: S.row },
+                item.status === 'review_pending'
+                  ? h('button', { style: S.btnOn, onClick: () => onOpenReview(item.id, batch.items.filter((i) => i.status === 'review_pending').map((i) => i.id)) }, '去审核')
+                  : null,
+                item.status === 'approved'
+                  ? h('button', { style: S.btnOn, disabled: exporting === item.id, onClick: () => exportItem(item) }, exporting === item.id ? '导出中…' : '导出发布包')
+                  : null,
+                item.status === 'failed'
+                  ? h('button', { style: S.btn, onClick: () => act('retry', `/items/${item.id}/retry`) }, '重新入队')
+                  : null,
+              ),
               item.error ? h('div', { style: { ...S.muted, color: '#f85149' } }, String(item.error).slice(0, 160)) : null,
             ),
           ),
@@ -764,28 +961,105 @@ window.__ModuleLoader__.load({
       )
     }
 
+    function ReadyPage({ refreshKey, platforms = [], onError }) {
+      const [batches, setBatches] = useState([])
+      const [busy, setBusy] = useState('')
+
+      const load = useCallback(async () => {
+        try {
+          const data = await api('GET', '/batches')
+          setBatches(data.batches || [])
+        } catch (error) {
+          onError?.(error.message)
+        }
+      }, [onError])
+
+      useEffect(() => { load() }, [load, refreshKey])
+
+      const rows = []
+      for (const batch of batches) {
+        for (const item of batch.items || []) {
+          if (item.status === 'approved') rows.push({ batch, item })
+        }
+      }
+
+      const download = async (item) => {
+        setBusy(item.id)
+        try {
+          await downloadZip(`/items/${item.id}/export`, `content-studio-item-${String(item.seq).padStart(3, '0')}.zip`)
+        } catch (error) {
+          onError?.(error.message)
+        } finally {
+          setBusy('')
+        }
+      }
+
+      return h('div', { style: S.col },
+        h('div', { style: S.spread },
+          h('div', { style: S.row },
+            h('strong', { style: { fontSize: 13 } }, '待发布'),
+            h('span', { style: S.muted }, `${rows.length} 条已通过，等待导出发布包`),
+          ),
+          h('button', { style: S.btn, onClick: load }, '刷新'),
+        ),
+        rows.length === 0
+          ? h('div', { style: { ...S.card, ...S.muted } }, '还没有待发布的条目。审核通过的条目会出现在这里。')
+          : h('div', { style: S.col },
+              rows.map(({ batch, item }) => h('div', { key: item.id, style: S.card },
+                h('div', { style: S.spread },
+                  h('div', { style: S.row },
+                    h('strong', { style: { fontSize: 12 } }, item.title || item.id),
+                    h(Badge, { tone: 'ok' }, '已通过'),
+                    h('span', { style: S.muted }, platformLabel(platforms, batch.config?.platform)),
+                    h('span', { style: S.muted }, item.durationSec ? `${item.durationSec.toFixed(1)}s` : ''),
+                    h('span', { style: S.muted }, batch.title),
+                  ),
+                  h('button', { style: S.btnOn, disabled: busy === item.id, onClick: () => download(item) },
+                    busy === item.id ? '导出中…' : '导出发布包'),
+                ),
+              )),
+            ),
+      )
+    }
+
+    function SettingsPage({ platforms = [] }) {
+      return h('div', { style: S.col },
+        h(ProvidersPage),
+        h('div', { style: S.card },
+          h('strong', { style: { fontSize: 13 } }, '平台预设'),
+          h('div', { style: S.muted }, 'v1 复用同一组已验证规格；平台差异先只影响标题字数提示，后续可按平台调参。'),
+          platforms.map((platform) => h('div', { key: platform.id, style: { ...S.row, borderTop: LINE, paddingTop: 6 } },
+            h('span', { style: { fontSize: 12, fontWeight: 600 } }, platform.label),
+            h('span', { style: S.muted }, `${platform.aspectRatio} · 目标 ${platform.targetSec}s · 标题 ≤${platform.titleMaxLength} 字 · 封面 ${platform.coverWidth}×${platform.coverHeight}`),
+          )),
+        ),
+      )
+    }
+
     /* ------------------------------------------------------------------ */
     /* 工作台                                                            */
     /* ------------------------------------------------------------------ */
     function Workbench({ services }) {
-      const [tab, setTab] = useState('batches')
+      const [tab, setTab] = useState('console')
       const [batches, setBatches] = useState([])
       const [selected, setSelected] = useState(null)
       const [reviewQueue, setReviewQueue] = useState([])
       const [reviewIndex, setReviewIndex] = useState(0)
       const [groups, setGroups] = useState([])
+      const [platforms, setPlatforms] = useState([])
       const [health, setHealth] = useState(null)
       const [error, setError] = useState('')
       const [tick, setTick] = useState(0)
 
       const load = useCallback(async () => {
         try {
-          const [list, groupInfo, healthInfo] = await Promise.all([
-            api('GET', '/batches'), api('GET', '/materials/groups'), api('GET', '/health'),
+          const [list, groupInfo, healthInfo, metaInfo] = await Promise.all([
+            api('GET', '/batches'), api('GET', '/materials/groups'), api('GET', '/health'), api('GET', '/meta'),
           ])
           setBatches(list.batches || [])
           setGroups(groupInfo.groups || [])
           setHealth(healthInfo)
+          setPlatforms(metaInfo.platforms || [])
           setError('')
         } catch (e) {
           setError(e.message)
@@ -799,21 +1073,40 @@ window.__ModuleLoader__.load({
         return () => clearInterval(timer)
       }, [])
 
+      const itemStatuses = batches.flatMap((batch) => (batch.items || []).map((item) => item.status))
+      const summary = [
+        ['运行中', itemStatuses.filter((status) => status === 'running').length],
+        ['待审核', itemStatuses.filter((status) => status === 'review_pending').length],
+        ['失败', itemStatuses.filter((status) => status === 'failed').length],
+        ['待发布', itemStatuses.filter((status) => status === 'approved').length],
+      ]
+
       return h('div', { style: S.page },
         h('div', null,
-          h('div', { style: { fontSize: 15, fontWeight: 600 } }, '内容工坊'),
-          h('div', { style: S.muted }, '批量生产：文案 → 配音 → 字幕 → 画面 → 渲染 → 封面 → 校验 → 人工审核'),
+          h('div', { style: { fontSize: 15, fontWeight: 600 } }, '内容生产 · 总控台'),
+          h('div', { style: S.muted }, '批量生产：文案 → 配音 → 字幕 → 画面 → 渲染 → 封面 → 校验 → 审核/导出'),
         ),
         error ? h('div', { style: { ...S.card, color: '#f85149' } }, `接口不可用：${error}`) : null,
-        h(Readiness, { health, onConfigure: () => setTab('providers') }),
+        h(Readiness, { health, onConfigure: () => setTab('settings') }),
         h('div', { style: { display: 'flex', gap: 4, borderBottom: LINE } },
-          [['batches', '批次'], ['review', '审核'], ['providers', '模型配置']].map(([key, label]) =>
+          [['console', '总控台'], ['review', '审核'], ['ready', '待发布'], ['settings', '设置']].map(([key, label]) =>
             h('button', { key, style: S.tab(tab === key), onClick: () => setTab(key) }, label)),
         ),
 
-        tab === 'batches'
+        tab === 'console'
           ? h('div', { style: S.col },
-              h(NewBatchForm, { groups, health, services, onCreated: (batch) => { setSelected(batch.id); load() } }),
+              h('div', { style: { ...S.card, display: 'flex', gap: 18, flexWrap: 'wrap' } },
+                summary.map(([label, value]) => h('div', { key: label, style: { fontSize: 12 } },
+                  h('span', { style: S.muted }, `${label} `), h('strong', null, String(value))),
+                ),
+              ),
+              h(NewBatchForm, {
+                groups,
+                health,
+                services,
+                platforms,
+                onCreated: (batch) => { setSelected(batch.id); load() },
+              }),
               h('div', { style: S.card },
                 h('div', { style: S.spread },
                   h('span', { style: { fontSize: 13, fontWeight: 600 } }, '批次列表'),
@@ -822,8 +1115,9 @@ window.__ModuleLoader__.load({
                 batches.length === 0
                   ? h('div', { style: S.muted }, '还没有批次')
                   : h('div', { style: S.col },
-                      batches.map((batch) =>
-                        h('div', {
+                      batches.map((batch) => {
+                        const failed = (batch.items || []).filter((item) => item.status === 'failed').length
+                        return h('div', {
                           key: batch.id,
                           style: { ...S.row, justifyContent: 'space-between', cursor: 'pointer', padding: '6px 0', borderTop: LINE },
                           onClick: () => setSelected(batch.id),
@@ -831,16 +1125,19 @@ window.__ModuleLoader__.load({
                           h('div', { style: S.row },
                             h('span', { style: S.dot(batch.status !== 'cancelled') }),
                             h('strong', { style: { fontSize: 12 } }, batch.title),
-                            h(Badge, { tone: STATUS_TONE[batch.status] || '' }, batch.status),
+                            h(Badge, { tone: BATCH_STATUS_TONE[batch.status] || '' }, BATCH_STATUS_ZH[batch.status] || batch.status),
+                            h('span', { style: S.muted }, platformLabel(platforms, batch.config?.platform)),
+                            failed > 0 ? h('span', { style: { ...S.muted, color: '#f85149' } }, `失败 ${failed}`) : null,
                           ),
-                          h('span', { style: S.muted }, `${batch.items.length} 条 · ${new Date(batch.createdAt).toLocaleString()}`),
-                        ),
-                      ),
+                          h('span', { style: S.muted }, `${batch.items.length} 条 · ${new Date(batch.createdAt).toLocaleString('zh-CN')}`),
+                        )
+                      }),
                     ),
               ),
               selected ? h(BatchDetail, {
                 batchId: selected,
                 refreshKey: tick,
+                platforms,
                 onOpenReview: (itemId, queue) => {
                   const ids = Array.isArray(queue) && queue.length > 0 ? queue : [itemId]
                   setReviewQueue(ids)
@@ -867,7 +1164,7 @@ window.__ModuleLoader__.load({
                       if (reviewIndex < reviewQueue.length - 1) setReviewIndex((i) => i + 1)
                     },
                   })
-                : h('div', { style: { ...S.card, ...S.muted } }, '在上面的批次详情里点「去审核」选择一条内容。'),
+                : h('div', { style: { ...S.card, ...S.muted } }, '在总控台的批次详情里点「去审核」选择一条内容。'),
               h('div', { style: S.row },
                 reviewQueue.length > 0
                   ? h('button', { style: S.btn, onClick: () => { setReviewQueue([]); setReviewIndex(0) } }, '关闭审核')
@@ -877,13 +1174,27 @@ window.__ModuleLoader__.load({
             )
           : null,
 
-        tab === 'providers' ? h(ProvidersPage) : null,
+        tab === 'ready' ? h(ReadyPage, { refreshKey: tick, platforms, onError: setError }) : null,
+
+        tab === 'settings' ? h(SettingsPage, { platforms }) : null,
       )
     }
 
     /* ------------------------------------------------------------------ */
     /* registration                                                        */
     /* ------------------------------------------------------------------ */
+    function SidebarIcon({ size = 18, active = false }) {
+      return h('svg', {
+        width: size, height: size, viewBox: '0 0 24 24', fill: 'none',
+        stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round',
+        style: { opacity: active ? 1 : 0.78 },
+      },
+        h('rect', { x: 3, y: 7, width: 18, height: 13, rx: 2 }),
+        h('path', { d: 'M3 11h18' }),
+        h('path', { d: 'M7 7l2-3M12 7l2-3M17 7l2-3' }),
+      )
+    }
+
     return {
       inject: ['slots'],
       apply(ctx) {
@@ -899,20 +1210,34 @@ window.__ModuleLoader__.load({
         const Bound = (props) => h(Workbench, { ...props, services })
         Bound.displayName = 'ContentStudioWorkbench'
 
-        ctx.slots.inject('settings.section', () =>
+        // 主区域面板 + 左侧栏图标，和「插件」「自动化任务」同一套 slot；
+        // 不再注册 settings.section，避免两个入口。
+        ctx.slots.inject('main', () =>
           ctx.slots.register(
             {
-              name: 'settings.section',
-              id: 'content-studio',
-              order: 60,
-              label: () => '内容工坊',
+              name: 'main',
+              key: 'content-studio',
             },
             Bound,
           ),
         )
+        ctx.slots.inject('sidebar.panellist', () =>
+          ctx.slots.register(
+            {
+              name: 'sidebar.panellist',
+              id: 'content-studio',
+              order: 25,
+              label: () => '内容生产',
+            },
+            SidebarIcon,
+          ),
+        )
       },
       // 测试缝隙：渲染测试需要单独挂载这些子组件。Cordis 忽略未知字段。
-      __components: { Workbench, ProvidersPage, NewBatchForm, BatchDetail, ReviewCard, Readiness, UsageLine, StepStrip },
+      __components: {
+        Workbench, ProvidersPage, NewBatchForm, BatchDetail, ReviewCard,
+        Readiness, UsageLine, StepStrip, CostBar, LogViewer, ReadyPage, SettingsPage, SidebarIcon,
+      },
     }
   },
 })

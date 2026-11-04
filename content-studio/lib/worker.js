@@ -24,6 +24,7 @@ export function createRunner(options = {}) {
   const active = new Map()
   const paused = new Set()
   const cancelled = new Set()
+  const costWarned = new Set()
   const failures = []
   let running = false
   let stopped = false
@@ -46,7 +47,8 @@ export function createRunner(options = {}) {
     }
   }
 
-  function enqueue(batchId, itemIds) {    for (const itemId of itemIds) {
+  function enqueue(batchId, itemIds) {
+    for (const itemId of itemIds) {
       if (queue.some((job) => job.itemId === itemId) || active.has(itemId)) continue
       queue.push({ batchId, itemId })
     }
@@ -73,9 +75,19 @@ export function createRunner(options = {}) {
           await new Promise((resolve) => setTimeout(resolve, 250))
           continue
         }
-        const promise = execute(job).finally(() => {
-          active.delete(job.itemId)
-        })
+        let retry = false
+        const promise = execute(job)
+          .then((result) => {
+            retry = Boolean(result?.retry)
+          })
+          .finally(() => {
+            active.delete(job.itemId)
+            // 自动重试必须等 active 释放后再入队，否则会被当成重复任务跳过。
+            if (retry && !stopped && !cancelled.has(job.batchId) && !paused.has(job.batchId)) {
+              queue.push({ ...job, retried: true })
+            }
+            if (queue.length > 0) kick()
+          })
         active.set(job.itemId, promise)
       }
     } finally {
@@ -112,13 +124,35 @@ export function createRunner(options = {}) {
         excludeMaterials: excludeFor(job.batchId),
         onProgress: (progress) => onEvent({ type: 'item:progress', ...job, progress }),
       })
+
+      // 失败自动重试一次：条目回到 pending，失败的步骤会在下一次执行时重跑。
+      if (result.status === ITEM_STATUS.failed && !job.retried && !cancelled.has(job.batchId) && !stopped) {
+        const updated = await updateItem(job.batchId, job.itemId, (current) => ({
+          status: ITEM_STATUS.pending,
+          error: null,
+          autoRetries: (current.autoRetries || 0) + 1,
+        }))
+        onEvent({ type: 'item:retry', ...job, error: result.error, autoRetries: updated.item?.autoRetries })
+        return { ...result, status: ITEM_STATUS.pending, retry: true }
+      }
+
       onEvent({ type: 'item:end', ...job, status: result.status, error: result.error })
       if (result.status === ITEM_STATUS.failed) failures.push({ ...job, error: result.error })
       return result
     } catch (error) {
-      failures.push({ ...job, error: String(error.message || error) })
-      onEvent({ type: 'item:error', ...job, error: String(error.message || error) })
-      return { status: ITEM_STATUS.failed, error: String(error.message || error) }
+      const message = String(error.message || error)
+      if (!job.retried && !cancelled.has(job.batchId) && !stopped) {
+        const updated = await updateItem(job.batchId, job.itemId, (current) => ({
+          status: ITEM_STATUS.pending,
+          error: null,
+          autoRetries: (current.autoRetries || 0) + 1,
+        })).catch(() => null)
+        onEvent({ type: 'item:retry', ...job, error: message, autoRetries: updated?.item?.autoRetries })
+        return { status: ITEM_STATUS.pending, error: message, retry: true }
+      }
+      failures.push({ ...job, error: message })
+      onEvent({ type: 'item:error', ...job, error: message })
+      return { status: ITEM_STATUS.failed, error: message }
     } finally {
       await refreshBatchStatus(job.batchId).catch(() => {})
     }
@@ -128,6 +162,25 @@ export function createRunner(options = {}) {
   async function refreshBatchStatus(batchId) {
     const batch = await loadBatch(batchId)
     if (!batch) return
+
+    // 成本护栏：80% 提示，100% 暂停。没有价目表时 totals 为 0，不会误触发。
+    const cap = Number(batch.config?.costCap)
+    if (Number.isFinite(cap) && cap > 0) {
+      const spent = batch.items.reduce((sum, item) => sum + (Number(item.cost?.total) || 0), 0)
+      const hasWork =
+        batch.items.some((item) => item.status === ITEM_STATUS.pending || item.status === ITEM_STATUS.running) ||
+        queue.some((job) => job.batchId === batchId) ||
+        [...active.keys()].some((itemId) => itemId.startsWith(batchId))
+
+      if (spent >= cap * 0.8 && !costWarned.has(batchId)) {
+        costWarned.add(batchId)
+        onEvent({ type: 'batch:cost-warning', batchId, spent, cap })
+      }
+      if (spent >= cap && hasWork && !paused.has(batchId) && !cancelled.has(batchId)) {
+        pauseBatch(batchId, 'cost_cap')
+      }
+    }
+
     const statuses = batch.items.map((item) => item.status)
     const busy = statuses.some((s) => s === ITEM_STATUS.running || s === ITEM_STATUS.pending)
     let status = batch.status
@@ -151,19 +204,25 @@ export function createRunner(options = {}) {
     paused.delete(batchId)
     cancelled.delete(batchId)
     usedByBatch.delete(batchId)
+    costWarned.delete(batchId)
     // 批次可以指定并发度：素材多、机器强的时候跑快一点
     const requested = Number(batch.config?.concurrency)
     if (Number.isFinite(requested) && requested >= 1) setConcurrency(requested)
-    await updateBatch(batchId, () => ({ status: 'running', startedAt: batch.startedAt || Date.now() }))
+    await updateBatch(batchId, (current) => ({
+      status: 'running',
+      pauseReason: null,
+      startedAt: current.startedAt || Date.now(),
+    }))
     const pending = batch.items.filter((item) => item.status === ITEM_STATUS.pending || item.status === ITEM_STATUS.failed)
     enqueue(batchId, pending.map((item) => item.id))
     return { batchId, enqueued: pending.length }
   }
 
-  function pauseBatch(batchId) {
+  function pauseBatch(batchId, reason = 'user') {
     paused.add(batchId)
-    onEvent({ type: 'batch:pause', batchId })
-    return { batchId, paused: true }
+    onEvent({ type: 'batch:pause', batchId, reason })
+    void updateBatch(batchId, () => ({ status: 'paused', pauseReason: reason, pausedAt: Date.now() })).catch(() => {})
+    return { batchId, paused: true, reason }
   }
 
   async function resumeBatch(batchId) {

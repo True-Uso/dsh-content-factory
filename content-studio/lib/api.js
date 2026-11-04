@@ -19,6 +19,8 @@ import { dataDir, loadProviders, providersFile, removeProvider, upsertProvider }
 import { computeCost, sumUsage } from './cost.js'
 import { preflight } from './preflight.js'
 import { listGroups, loadIndex, scanMaterials } from './steps/scan.js'
+import { listPlatforms, normalizeBatchConfig } from './platforms.js'
+import { batchExportName, buildBatchZip, buildItemZip, itemExportName } from './export.js'
 
 const MASK = '__stored__'
 const MAX_BODY = 1024 * 1024
@@ -89,6 +91,11 @@ export function createApi({ runner, prefix = '/content-studio/api', allowedOrigi
         roles: ['video', 'llm', 'tts', 'image'],
         steps: STEP_ORDER,
         reviewReasons: REVIEW_REASONS,
+        platforms: listPlatforms(),
+        reviewModes: [
+          { id: 'required', label: '需人工审核' },
+          { id: 'auto', label: '自动放行' },
+        ],
         dataDir: dataDir(),
         providersFile: providersFile(),
         note: 'ark-seedance 已预留，需要方舟控制台的模型 ID 才能启用',
@@ -182,6 +189,7 @@ export function createApi({ runner, prefix = '/content-studio/api', allowedOrigi
     if (method === 'POST' && path === '/batches') {
       const body = await readJson(req)
       if (!body.title && !body.config?.topic) return sendJson(res, 400, { error: '需要 title 或 config.topic' })
+      const config = normalizeBatchConfig(body.config || {})
       const tools = await resolveTools()
       const injected = runner?.roles?.()
       const roles = injected || new Set((await loadProviders()).filter((p) => p.enabled !== false).map((p) => roleOf(p)))
@@ -191,18 +199,18 @@ export function createApi({ runner, prefix = '/content-studio/api', allowedOrigi
         tools,
         roles,
         materials: index.entries,
-        config: body.config || {},
+        config,
         count,
       })
       const batch = await createBatch({
         title: body.title || body.config?.topic,
         count,
-        config: body.config || {},
+        config,
       })
       return sendJson(res, 200, { batch, preflight: check })
     }
 
-    const batchMatch = /^\/batches\/([^/]+)(?:\/(start|pause|resume|cancel|items))?$/.exec(path)
+    const batchMatch = /^\/batches\/([^/]+)(?:\/(start|pause|resume|cancel|items|config|log|export))?$/.exec(path)
     if (batchMatch) {
       const batchId = decodeURIComponent(batchMatch[1])
       const action = batchMatch[2]
@@ -248,7 +256,7 @@ export function createApi({ runner, prefix = '/content-studio/api', allowedOrigi
         return sendJson(res, 200, await runner.startBatch(batchId))
       }
       if (method === 'POST' && action === 'pause') {
-        return sendJson(res, 200, runner ? runner.pauseBatch(batchId) : { paused: true })
+        return sendJson(res, 200, runner ? runner.pauseBatch(batchId, 'user') : { paused: true, reason: 'user' })
       }
       if (method === 'POST' && action === 'resume') {
         if (!runner) return sendJson(res, 503, { error: '队列未就绪' })
@@ -258,10 +266,57 @@ export function createApi({ runner, prefix = '/content-studio/api', allowedOrigi
         runner?.cancelBatch(batchId)
         return sendJson(res, 200, { cancelled: true })
       }
+
+      if (method === 'POST' && action === 'config') {
+        const body = await readJson(req)
+        const patch = {}
+        if (body.costCap !== undefined) {
+          const value = Number(body.costCap)
+          patch.costCap = Number.isFinite(value) && value > 0 ? value : null
+        }
+        if (body.reviewMode !== undefined) patch.reviewMode = body.reviewMode === 'auto' ? 'auto' : 'required'
+        if (body.publishStartAt !== undefined) {
+          const stamp = body.publishStartAt ? Date.parse(body.publishStartAt) : null
+          patch.publishStartAt = stamp !== null && Number.isFinite(stamp) ? new Date(stamp).toISOString() : null
+        }
+        if (body.publishIntervalMinutes !== undefined) {
+          const value = Number(body.publishIntervalMinutes)
+          patch.publishIntervalMinutes = Number.isFinite(value) && value >= 0 ? value : 1440
+        }
+        if (Object.keys(patch).length === 0) return sendJson(res, 400, { error: '没有可更新的配置' })
+
+        const next = await updateBatch(batchId, (current) => {
+          const config = { ...(current.config || {}), ...patch }
+          const cleared = current.pauseReason === 'cost_cap' && patch.costCap !== undefined ? null : current.pauseReason
+          return { config, pauseReason: cleared }
+        })
+        return sendJson(res, 200, { batch: next })
+      }
+
+      if (method === 'GET' && action === 'log') {
+        const items = []
+        for (const summary of batch.items) {
+          items.push({
+            id: summary.id,
+            seq: summary.seq,
+            log: await readText(join(summary.dir, 'item.log')),
+          })
+        }
+        return sendJson(res, 200, {
+          batchId,
+          batch: await readText(join(batch.dir, 'batch.log')),
+          items,
+        })
+      }
+
+      if (method === 'GET' && action === 'export') {
+        const zip = await buildBatchZip(batch)
+        return sendZip(res, zip, batchExportName(batch))
+      }
     }
 
     /* ---------------- items ---------------- */
-    const itemMatch = /^\/items\/([^/]+)(?:\/(rerun|approve|reject|retry|script|unapprove))?$/.exec(path)
+    const itemMatch = /^\/items\/([^/]+)(?:\/(rerun|approve|reject|retry|script|unapprove|log|export))?$/.exec(path)
     if (itemMatch) {
       const itemId = decodeURIComponent(itemMatch[1])
       const action = itemMatch[2]
@@ -369,6 +424,20 @@ export function createApi({ runner, prefix = '/content-studio/api', allowedOrigi
         await updateItem(batchId, item.id, () => ({ status: ITEM_STATUS.reviewPending }))
         await runner?.refreshBatchStatus(batchId)
         return sendJson(res, 200, { itemId: item.id, status: ITEM_STATUS.reviewPending })
+      }
+
+      if (method === 'GET' && action === 'log') {
+        return sendJson(res, 200, {
+          itemId: item.id,
+          title: item.title,
+          log: await readText(join(item.dir, 'item.log')),
+        })
+      }
+
+      if (method === 'GET' && action === 'export') {
+        const parent = await loadBatch(batchId)
+        const zip = await buildItemZip(item, parent?.config || {})
+        return sendZip(res, zip, itemExportName(item))
       }
     }
 
@@ -526,7 +595,38 @@ async function runProviderTest(provider, body) {
 function batchTotals(batch) {
   const items = Array.isArray(batch?.items) ? batch.items : []
   const usage = sumUsage(items.map((item) => item.usage))
-  return { usage, cost: computeCost(usage, batch?.config?.pricing || {}), items: items.length }
+  const cost = computeCost(usage, batch?.config?.pricing || {})
+  const rawCap = Number(batch?.config?.costCap)
+  const costCap = Number.isFinite(rawCap) && rawCap > 0 ? rawCap : null
+  const ratio = costCap && cost.priced ? cost.total / costCap : 0
+  return {
+    usage,
+    cost,
+    items: items.length,
+    costCap,
+    capRatio: ratio,
+    capWarning: ratio >= 0.8,
+    capReached: ratio >= 1,
+  }
+}
+
+async function readText(file, limit = 200_000) {
+  try {
+    const text = await readFile(file, 'utf8')
+    return text.length > limit ? text.slice(-limit) : text
+  } catch {
+    return ''
+  }
+}
+
+function sendZip(res, buffer, filename) {
+  res.writeHead(200, {
+    'content-type': 'application/zip',
+    'content-length': buffer.length,
+    'content-disposition': `attachment; filename="${filename}"`,
+    'cache-control': 'no-store',
+  })
+  res.end(buffer)
 }
 
 function contentTypeOf(file) {

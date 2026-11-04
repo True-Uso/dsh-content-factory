@@ -25,7 +25,7 @@ export const DEFAULT_RULES = {
 }
 
 export async function validateItem(options) {
-  const { tools, itemDir, ctx = {}, rules: overrideRules = {} } = options
+  const { tools, itemDir, ctx = {}, rules: overrideRules = {}, platform = null } = options
   const rules = { ...DEFAULT_RULES, ...overrideRules }
   const checks = []
   const add = (id, level, status, detail) => checks.push({ id, level, status, detail })
@@ -57,6 +57,21 @@ export async function validateItem(options) {
   const coverSize = verticalCover ? await sizeOf(verticalCover) : 0
   add('L1.cover', 'L1', coverSize > 0 ? 'passed' : 'failed', coverSize > 0 ? `${coverFiles.vertical.w}x${coverFiles.vertical.h}` : '封面缺失')
 
+  // 平台封面尺寸是硬规格：封面错尺寸会直接影响发布后的展示。
+  if (platform && verticalCover && coverSize > 0 && tools?.ok) {
+    const coverInfo = await probe(tools, verticalCover).catch(() => null)
+    if (!coverInfo) add('L2.coverSize', 'L2', 'warning', '无法读取封面尺寸')
+    else {
+      const ok = coverInfo.width === platform.coverWidth && coverInfo.height === platform.coverHeight
+      add(
+        'L2.coverSize',
+        'L2',
+        ok ? 'passed' : 'failed',
+        `${coverInfo.width}x${coverInfo.height}（平台期望 ${platform.coverWidth}x${platform.coverHeight}）`,
+      )
+    }
+  }
+
   /* ---------------- L2: 视频规格 ---------------- */
   if (masterSize > 0 && tools?.ok) {
     let info
@@ -86,9 +101,13 @@ export async function validateItem(options) {
 
       add('L2.audioTrack', 'L2', info.hasAudio ? 'passed' : 'failed', info.hasAudio ? info.audioCodec : '没有音频轨')
 
-      const limits = { min: rules.minDurationSec, max: rules.maxDurationSec }
+      const limits = {
+        min: platform?.minDurationSec ?? rules.minDurationSec,
+        max: platform?.maxDurationSec ?? rules.maxDurationSec,
+      }
       const inRange = info.durationSec >= limits.min && info.durationSec <= limits.max
-      add('L2.durationRange', 'L2', inRange ? 'passed' : 'warning', `${info.durationSec}s 应落在 ${limits.min}–${limits.max}s`)
+      // 平台时长区间是硬规格；没有平台上下文时保持旧行为（只警告）。
+      add('L2.durationRange', 'L2', inRange ? 'passed' : platform ? 'failed' : 'warning', `${info.durationSec}s 应落在 ${limits.min}–${limits.max}s`)
 
       if (info.hasAudio) {
         const mean = await meanVolumeDb(tools, masterPath).catch(() => null)
@@ -139,6 +158,7 @@ export async function validateItem(options) {
   return {
     version: 1,
     status,
+    platform: platform?.id || null,
     generatedAt: Date.now(),
     summary: { total: checks.length, passed: checks.filter((c) => c.status === 'passed').length, warnings: warnings.length, errors: errors.length },
     checks,

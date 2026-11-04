@@ -10,6 +10,7 @@ import { renderPlan, extractThumbnail, wavToMp3 } from './steps/render.js'
 import { runToCompletion } from './runner.js'
 import { composeCover, fallbackBackground, COVER_VARIANTS } from './steps/cover.js'
 import { validateItem } from './steps/validate.js'
+import { getPlatform } from './platforms.js'
 import { markUsed, pickMaterials } from './steps/scan.js'
 import { addUsage, computeCost, emptyUsage } from './cost.js'
 
@@ -297,12 +298,27 @@ export async function runItem(options) {
         itemDir: item.dir,
         ctx: { script, plan, masterPath: render.masterPath, cover: cover.files, voicePath: voice.wavPath },
         rules: config.validationRules || {},
+        platform: config.platform ? getPlatform(config.platform) : null,
       })
       await writeJson(join(dir, 'report.json'), result)
       return result
     })
 
-    const finalStatus = report.status === 'failed' ? ITEM_STATUS.failed : ITEM_STATUS.reviewPending
+    // 自动放行：校验通过的条目直接进入待发布，跳过人工审核台。
+    const autoApproved = config.reviewMode === 'auto' && report.status !== 'failed'
+    const finalStatus = report.status === 'failed'
+      ? ITEM_STATUS.failed
+      : autoApproved
+        ? ITEM_STATUS.approved
+        : ITEM_STATUS.reviewPending
+    if (autoApproved) {
+      await writeJson(join(item.dir, '09-review', 'review.json'), {
+        decision: 'approved',
+        mode: 'auto',
+        decidedAt: Date.now(),
+        note: '批次配置为自动放行',
+      })
+    }
     const itemUsage = addUsage(emptyUsage(), usage)
     const cost = computeCost(itemUsage, config.pricing || {})
     await updateItem(batchId, itemId, () => ({

@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Provider registry and local video-model adapters for batch content production.",
+  "keywords": ["dsh", "content", "video", "短视频", "内容生产"],
   "exports": {
     ".": "./index.js",
     "./client": "./client.js",
@@ -14,10 +15,18 @@
     "index.js",
     "client.js",
     "cordis.patch.yml",
-    "lib/*.js",
+    "lib",
     "locale/*.json",
-    "icon.svg"
+    "icon.svg",
+    "README.md"
   ],
+  "dependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "@ffprobe-installer/ffprobe": "^2.1.2"
+  },
+  "engines": {
+    "dsh": ">=0.2.1-rc.4 <0.3.0"
+  },
   "dsh": {
     "bundle": { "patch": "./cordis.patch.yml" },
     "client": {

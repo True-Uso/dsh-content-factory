@@ -1,7 +1,7 @@
 {
   "meta": {
-    "title": "内容工坊",
-    "description": "内容批量生产的模型注册表：方舟 Seedance、本地 ComfyUI，以及任意自建 HTTP 视频服务。"
+    "title": "内容生产",
+    "description": "批量生产社交媒体短视频：文案、配音、混剪、封面、校验、人工审核与发布包导出。"
   },
   "title": "内容工坊",
   "subtitle": "视频模型",

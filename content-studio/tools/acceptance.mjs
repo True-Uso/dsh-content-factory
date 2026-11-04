@@ -163,6 +163,11 @@ const created = await call('POST', '/batches', {
   config: {
     topic: '通勤穿搭与家居收纳',
     style: '口语化、快节奏',
+    platform: 'douyin',
+    publishStartAt: new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
+    publishIntervalMinutes: 1440,
+    reviewMode: 'required',
+    costCap: 20,
     targetSec: 26,
     aspectRatio: '9:16',
     materialMode: 'pool',
@@ -258,7 +263,7 @@ const uniqueSources = new Set(usedSources).size
 const cost = detail.batch.totals?.cost
 const usage = detail.batch.totals?.usage
 
-const report = `# 验收报告 · 内容工坊 v${pkg.version}
+const report = `# 验收报告 · 内容生产 v${pkg.version}
 
 生成时间：${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}
 
@@ -277,6 +282,7 @@ const report = `# 验收报告 · 内容工坊 v${pkg.version}
 | 批次 | ${detail.batch.title}（\`${batchId}\`） |
 | 条数 | ${items.length} |
 | 成功产出 | ${okCount} / ${items.length} |
+| 平台 | 抖音 · 需人工审核 · 成本上限 ¥${detail.batch.config.costCap} |
 | 总耗时 | ${(elapsed / 1000).toFixed(1)} 秒 |
 | 素材去重 | ${usedSources.length} 个镜头用了 ${uniqueSources} 个不同素材 |
 | 用量 | ${usage ? `文案 ${usage.llmTokens} token · 配音 ${usage.ttsCharacters} 字${Number(usage.ttsReusedCharacters || 0) > 0 ? `（缓存复用 ${usage.ttsReusedCharacters} 字）` : ''} / ${Number(usage.ttsSeconds || 0).toFixed(1)}s · 生成 ${Number(usage.videoSeconds || 0).toFixed(1)}s` : '-'} |
@@ -314,16 +320,17 @@ ${timing}
 - 视频模型：本地用 ffmpeg 的 testsrc2 生成抽象画面
 - 生图模型：未配置，封面走纯色底图（报告标记 \`degraded\`）
 
-**换成真实模型只需要填配置**：在「模型配置」页填入 API Key 后启用即可，不改代码。
+**换成真实模型只需要填配置**：在左侧栏「内容生产」→「设置」页填入 API Key 后启用即可，不改代码。
 
 ## 五、你可以自己 5 分钟验一遍
 
-1. 打开 **设置 → 内容工坊**
-2. 「模型配置」页看 ffmpeg 状态是否为「已就绪」
-3. 「批次」页点开「示例批次」，点任意一条的「去审核」
+1. 打开左侧栏 **内容生产**
+2. 「设置」页签看 ffmpeg 状态是否为「已就绪」
+3. 「总控台」点开「验收演示批次」，点任意一条的「去审核」
 4. 播放视频、看封面、改标题后点「保存文案」（会重跑校验但不重渲染）
 5. 点「通过」或「驳回」，观察状态变化
-6. 回到模型配置页，点某个模型的「测试」，看是否真的产生一次调用
+6. 回「待发布」导出发布包；批次详情点「生产日志」
+7. 回到「设置」页签，点某个模型的「测试」，看是否真的产生一次调用
 
 ## 六、测试覆盖
 
@@ -335,12 +342,14 @@ node tools/test-media.mjs         # 扫描/索引清理/封面/三级校验/去�
 node tools/test-pipeline-e2e.mjs  # 单条全链路 + 用量核算
 node tools/test-worker.mjs        # 并发/续跑/暂停/去重/并发配置
 node tools/test-adapters.mjs      # ComfyUI / 方舟 / 生图 适配器
+node tools/test-platforms.mjs     # 平台预设与批次配置
+node tools/test-export.mjs        # 发布包 ZIP 结构与 CRC
 node tools/test-api.mjs           # 真 HTTP 接口
 node tools/test-activate.mjs      # 激活路径
 node tools/test-client-render.mjs # 真 React 渲染 UI
 \`\`\`
 
-各脚本末尾会打印通过的断言数，合计 345 项。
+各脚本末尾会打印通过的断言数，合计 415 项。
 `
 
 await writeFile(join(WORKSPACE, '验收报告.md'), report, 'utf8')

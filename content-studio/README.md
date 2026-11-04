@@ -1,4 +1,6 @@
-﻿# Content Studio（内容工坊）
+﻿# Content Studio（内容生产）
+
+> 2026-11-04 起的产品形态与分发方式以 [需求对齐稿](../docs/需求对齐-2026-11-04.md) 为准：左侧栏主面板入口、私有 GitHub + 公开索引分发、本期不做独立 worker。
 
 DeepSeek Harness 插件：**批量生产短视频**，从素材到成片到审核一次跑完。
 
@@ -18,22 +20,15 @@ DeepSeek Harness 插件：**批量生产短视频**，从素材到成片到审�
 
 ## 安装
 
-插件已作为 bundle 装入当前 profile（entryId `include:content-studio`）。
+插件从**私有 GitHub 仓库**分发；代码仓库保持私有，只把一份 metadata 索引放到公开静态页。同事在 DSH 的「插件 → 发现」里添加一次索引源，之后点「安装 / 更新」即可。完整步骤见 [docs/发布到GitHub.md](../docs/发布到GitHub.md)。
 
-**1. 准备 ffmpeg**
+**1. 依赖**
 
-解析顺序：配置路径 → `CONTENT_STUDIO_FFMPEG` / `CONTENT_STUDIO_FFPROBE` → PATH → 插件自身位置 → 工作目录向上 4 层的 `tools/bin` → `~/.content-studio/bin` → `C:\ffmpeg\bin`。
+`@ffmpeg-installer/ffmpeg` 和 `@ffprobe-installer/ffprobe` 会随 npm 安装按平台取二进制，运营不需要手动放 ffmpeg。解析顺序仍然是：显式配置 → `CONTENT_STUDIO_FFMPEG` / `CONTENT_STUDIO_FFPROBE` → PATH → 插件位置 → `~/.content-studio/bin` → 随包安装的二进制，方便 IT 用更新版本覆盖。
 
-宿主的 cwd 是安装目录而不是工作区，所以**首选把二进制放到 `~/.content-studio/bin/`**（本机已经放好）。打开「设置 → 内容工坊 → 模型配置」能看到 ffmpeg 是否就绪。
+**2. 配模型**
 
-**2. 改代码后怎么生效**
-
-不用重启 Harness：`plugin_manager` 把 `include:content-studio` 关掉再打开即可加载新代码。
-（`client.js` 侧由 HMR 处理；`index.js` 这类 Host 模块靠重新激活换一代。）
-
-**3. 配模型**
-
-至少要三类才能产出：
+左侧栏「内容生产」→ **设置** → 模型配置。至少要三类才能产出：
 
 | 角色 | 推荐 | 说明 |
 |---|---|---|
@@ -45,14 +40,26 @@ DeepSeek Harness 插件：**批量生产短视频**，从素材到成片到审�
 
 配置写在 `~/.content-studio/providers.json`（可用 `CONTENT_STUDIO_HOME` 覆盖）。
 
+**3. 本地改代码后怎么生效**
+
+不用重启 DSH：用插件的热重载/重新激活加载新代码。Host 半侧（`index.js`、`lib/`）需要重新激活一代；客户端半侧由 DSH 的 HMR 处理。
+
 ---
 
 ## 用起来
 
-1. 打开 **设置 → 内容工坊**
-2. 「批次」页填主题、条数、素材目录，先点「扫描素材」
+1. 左侧栏「内容生产」打开**总控台**
+2. 填主题、数量、素材目录、平台（抖音/小红书/视频号）、发布起点与间隔、审核模式、成本上限；先点「扫描素材」
 3. 「创建批次」→ 在列表里点开 → 「开始」
-4. 跑完在「审核」页逐条看片、过稿或驳回
+4. 审核模式为「需人工审核」的批次，在「审核」页逐条看片、过稿或驳回；「自动放行」的批次校验通过后直接进「待发布」
+5. 「待发布」页逐条导出发布包；批次详情也能「导出整批」
+6. 批次详情里点「生产日志」看批次与条目的完整执行记录
+
+批次级护栏：
+
+- **成本上限**：到 80% 页面提示，到 100% 自动暂停；批次详情可「提高上限并继续」
+- **自动重试**：条目失败后自动重跑一次，仍失败才标记失败并保留原始错误
+- **发布排期**：发布起点与间隔只记录，本期不自动发布
 
 审核台支持按步骤局部重做：改文案就重跑「文案起」，换封面就重跑「封面起」，不重跑前面的。
 
@@ -119,17 +126,22 @@ DeepSeek Harness 插件：**批量生产短视频**，从素材到成片到审�
 
 | 方法 | 路径 | 作用 |
 |---|---|---|
-| GET | `/content-studio/api/meta` | 适配器类型、步骤、审核原因 |
+| GET | `/content-studio/api/meta` | 适配器类型、步骤、审核原因、平台预设 |
 | GET | `/content-studio/api/health` | ffmpeg 状态、滤镜能力、队列 |
 | GET/PUT/DELETE | `/providers[/:id]` | 模型配置 |
 | POST | `/providers/:id/health` `/test` | 健康检查 / 试跑 |
 | POST | `/materials/scan` | 扫描素材目录 |
 | GET | `/materials/groups` | 素材分组统计 |
-| GET/POST | `/batches` | 批次列表（带用量与成本汇总）/ 创建 |
+| GET/POST | `/batches` | 批次列表（带用量、成本、成本上限状态）/ 创建 |
 | DELETE | `/batches/:id?purge=1` | 取消并删除产物目录 |
 | POST | `/batches/:id/start\|pause\|resume\|cancel` | 批次控制 |
+| POST | `/batches/:id/config` | 运行中改成本上限 / 审核模式 / 发布时间 |
 | GET | `/batches/:id` | 批次详情（含步骤与校验报告） |
+| GET | `/batches/:id/log` | 批次与全部条目的生产日志 |
+| GET | `/batches/:id/export` | 整批发布包 ZIP |
 | GET | `/items/:id` | 条目详情 |
+| GET | `/items/:id/log` | 单条生产日志 |
+| GET | `/items/:id/export` | 单条发布包 ZIP |
 | POST | `/items/:id/rerun` | 从某步重做（`{from:'script'\|'voice'\|'render'\|'cover'}`） |
 | POST | `/items/:id/approve\|reject\|retry` | 审核 |
 | GET | `/media/:batchId/:itemId/<相对路径>` | 产物（支持 Range） |
@@ -189,20 +201,22 @@ content-studio/
 ## 测试
 
 ```bash
-node tools/check.mjs              # 22 个模块加载
-node tools/test-pipeline.mjs      # 56 项：字幕/ASS/WAV/文案/存储/配音
-node tools/test-render.mjs        # 23 项：EDL + 真渲染 + 循环/转场/BGM/图片/16:9
-node tools/test-media.mjs         # 47 项：扫描/索引清理/封面/三级校验/素材去重/图片探测
-node tools/test-pipeline-e2e.mjs  # 34 项：单条全链路 + 用量核算
-node tools/test-worker.mjs        # 24 项：并发/续跑/暂停/去重/并发配置
-node tools/test-api.mjs           # 75 项：真 HTTP + 媒体 + 审核 + 模型测试
-node tools/test-adapters.mjs      # 25 项：ComfyUI / 方舟 / 生图 适配器契约
-node tools/test-activate.mjs      # 17 项：激活路径
-node tools/test-client-render.mjs # 44 项：真 React 渲染 UI
-node tools/acceptance.mjs         # 5 条批量验收，产出报告
+node tools/check.mjs               # 25 个模块加载
+node tools/test-pipeline.mjs       # 56 项：字幕/ASS/WAV/文案/存储/配音
+node tools/test-render.mjs         # 23 项：EDL + 真渲染 + 循环/转场/BGM/图片/16:9
+node tools/test-media.mjs          # 50 项：扫描/索引清理/封面/三级校验/平台硬规格/去重/图片探测
+node tools/test-pipeline-e2e.mjs   # 34 项：单条全链路 + 用量核算
+node tools/test-worker.mjs         # 34 项：并发/续跑/暂停/去重/自动重试/自动放行/成本上限
+node tools/test-platforms.mjs      # 22 项：平台预设与批次配置归一化
+node tools/test-export.mjs         # 11 项：发布包 ZIP 结构、CRC、缺失成片守卫
+node tools/test-api.mjs            # 94 项：真 HTTP + 媒体 + 审核 + 导出 + 日志 + 自动放行
+node tools/test-adapters.mjs       # 25 项：ComfyUI / 方舟 / 生图 适配器契约
+node tools/test-activate.mjs       # 17 项：激活路径
+node tools/test-client-render.mjs  # 49 项：真 React 渲染 UI
+node tools/acceptance.mjs          # 5 条批量验收，产出报告
 ```
 
-合计 345 项断言。
+合计 415 项断言。
 
 `test-client-render` 需要本地 React：
 
@@ -216,10 +230,11 @@ cd ../tools/react-test && npm i react@18 react-dom@18 react-test-renderer@18
 
 | 限制 | 说明 |
 |---|---|
-| 不是独立进程 | 队列跑在宿主进程内，关掉 Harness 不继续渲染；重启后自动续跑 |
+| 不是独立进程 | 队列跑在宿主进程内，关掉 DSH 不继续渲染；重启后自动续跑 |
 | 未接真实模型 | 第三方模型用本地 mock 服务验证过完整链路，但没有用真实 API Key 跑过 |
-| 成本护栏 | 只有用量记账与建批次预检；运行中 80% 告警、100% 自动暂停未实现 |
-| 日志与告警 | 有 `batch.log` / `item.log`；`api.log` / `render.log` 与页面红点未实现 |
+| 日志与告警 | 有 `batch.log` / `item.log` 和页面日志查看；`api.log` / `render.log` 与系统通知未实现 |
+| 分发 | 私有 GitHub + 自建索引，没有公共 npm/市场目录；索引文件需要单独托管 |
+| ffmpeg 版本 | 随包安装的是 4.x 平台二进制；显式配置或 PATH 里的更新版本优先，需要回归滤镜 |
 | 封面底图 | 未配生图模型时用纯色底图，报告标 `degraded` |
 | 转场 | 只有硬切和淡入淡出（dip-to-black），没有交叉淡化——xfade 会缩短时间轴，与配音对齐冲突 |
 

@@ -57,7 +57,7 @@ const registrations = []
 const ctx = {
   slots: {
     inject(key, callback) {
-      if (key !== 'settings.section') throw new Error(`注入的 slot 不符：${key}`)
+      if (key !== 'main' && key !== 'sidebar.panellist') throw new Error(`注入的 slot 不符：${key}`)
       callback()
       return () => {}
     },
@@ -68,12 +68,15 @@ const ctx = {
   },
 }
 mod.apply(ctx)
-check('注册了一个 section', registrations.length === 1)
-check('注册 id 正确', registrations[0].options.id === 'content-studio')
-check('label 是函数且非空', typeof registrations[0].options.label === 'function' && Boolean(registrations[0].options.label()))
+check('注册了主面板和侧栏图标', registrations.length === 2)
+const mainReg = registrations.find((entry) => entry.options.name === 'main')
+const sideReg = registrations.find((entry) => entry.options.name === 'sidebar.panellist')
+check('主面板 id 正确', mainReg?.options.key === 'content-studio')
+check('侧栏 id 与主面板一致', sideReg?.options.id === 'content-studio')
+check('侧栏 label 是函数且非空', typeof sideReg?.options.label === 'function' && Boolean(sideReg.options.label()))
 
 /* ---------- 真渲染 ---------- */
-const Workbench = registrations[0].component
+const Workbench = mainReg.component
 let html = ''
 try {
   html = ReactDOMServer.renderToStaticMarkup(React.createElement(Workbench, {}))
@@ -82,14 +85,17 @@ try {
 }
 
 check('渲染出了非空 HTML', html.length > 200, `${html.length} chars`)
-check('有页面标题', html.includes('内容工坊'))
-check('三个页签都在', ['批次', '审核', '模型配置'].every((label) => html.includes(label)))
+check('有页面标题', html.includes('内容生产 · 总控台'))
+check('四个页签都在', ['总控台', '审核', '待发布', '设置'].every((label) => html.includes(label)))
 check('新建批次表单在', html.includes('新建批次'))
 check('有主题输入框', html.includes('主题（必填）'))
 check('有素材目录输入框', html.includes('素材目录'))
 check('有创建按钮', html.includes('创建批次'))
 check('初始状态显示空批次列表', html.includes('还没有批次'))
 check('没有渲染期异常标记', !html.includes('接口不可用'))
+
+const iconHtml = ReactDOMServer.renderToStaticMarkup(React.createElement(sideReg.component, { size: 18, active: true }))
+check('侧栏图标渲染 SVG', iconHtml.includes('<svg'))
 
 /* ---------- 二次渲染稳定（hooks 顺序不能变） ---------- */
 const second = ReactDOMServer.renderToStaticMarkup(React.createElement(Workbench, {}))
@@ -136,21 +142,29 @@ const strip = render(C.StepStrip, { steps: { script: { status: 'done' }, render:
 check('步骤条渲染全部步骤', ['文案', '配音', '字幕', '画面', '剪辑方案', '渲染', '封面', '校验'].every((label) => strip.includes(label)))
 
 // 新建批次表单（带分组）
-const form = render(C.NewBatchForm, { groups: [{ group: '通勤穿搭', count: 3 }], health: { ffmpeg: { ok: true } } })
+const PLATFORM_FIXTURE = [
+  { id: 'douyin', label: '抖音', aspectRatio: '9:16', targetSec: 26, titleMaxLength: 30, coverWidth: 1080, coverHeight: 1920 },
+  { id: 'xiaohongshu', label: '小红书', aspectRatio: '9:16', targetSec: 26, titleMaxLength: 20, coverWidth: 1080, coverHeight: 1920 },
+]
+const form = render(C.NewBatchForm, { groups: [{ group: '通勤穿搭', count: 3 }], health: { ffmpeg: { ok: true } }, platforms: PLATFORM_FIXTURE })
 check('表单渲染分组选项', form.includes('通勤穿搭 (3)'))
 check('表单有转场选项', form.includes('淡入淡出'))
 check('ffmpeg 正常时不报警', !form.includes('ffmpeg 不可用'))
 check('表单有选择目录入口', form.includes('选择目录'))
+check('表单有平台选项', form.includes('抖音') && form.includes('小红书'))
+check('表单有发布设置', form.includes('发布设置') && form.includes('需人工审核') && form.includes('自动放行'))
+check('表单有成本上限', form.includes('成本上限'))
 
 // 目录选择器可用时按钮不应禁用
 const formWithPicker = render(C.NewBatchForm, {
   groups: [],
   health: { ffmpeg: { ok: true } },
+  platforms: PLATFORM_FIXTURE,
   services: { pickDirectory: async () => null },
 })
 check('有目录选择器时按钮可用', formWithPicker.includes('选择目录') && !/disabled=""[^>]*>选择目录/.test(formWithPicker))
 
-const formBad = render(C.NewBatchForm, { groups: [], health: { ffmpeg: { ok: false, error: 'ffmpeg 缺失' } } })
+const formBad = render(C.NewBatchForm, { groups: [], health: { ffmpeg: { ok: false, error: 'ffmpeg 缺失' } }, platforms: PLATFORM_FIXTURE })
 check('ffmpeg 缺失时表单告警', formBad.includes('ffmpeg 缺失'))
 
 // 审核卡片：初始态不发请求，只验证能构建
@@ -190,13 +204,15 @@ globalThis.fetch = async (url) => {
   const path = String(url).replace('http://test', '')
   const body = path.includes('/health')
     ? { ffmpeg: { ok: true }, providers: [{ id: 'p', role: 'llm', enabled: true }, { id: 'q', role: 'tts', enabled: true }, { id: 'v', role: 'video', enabled: true }], queue: null }
-    : path.includes('/materials/groups')
-      ? { groups: [{ group: '通勤穿搭', count: 3 }], total: 3 }
-      : path.includes('/batches')
-        ? { batches: [BATCH_FIXTURE] }
-        : path.includes('/items/')
-          ? ITEM_FIXTURE
-          : {}
+    : path.includes('/meta')
+      ? { platforms: PLATFORM_FIXTURE, reviewModes: [{ id: 'required', label: '需人工审核' }, { id: 'auto', label: '自动放行' }] }
+      : path.includes('/materials/groups')
+        ? { groups: [{ group: '通勤穿搭', count: 3 }], total: 3 }
+        : path.includes('/batches')
+          ? { batches: [BATCH_FIXTURE] }
+          : path.includes('/items/')
+            ? ITEM_FIXTURE
+            : {}
   return { ok: true, status: 200, text: async () => JSON.stringify(body), json: async () => body }
 }
 
@@ -211,7 +227,7 @@ await act(async () => {
 const mounted = JSON.stringify(tree.toJSON())
 check('挂载后拉到了批次列表', mounted.includes('夹具批次'), mounted.slice(0, 200))
 check('挂载后显示条目数', mounted.includes('2 条'))
-check('挂载后显示批次状态', mounted.includes('review'))
+check('挂载后显示批次状态', mounted.includes('待审核'))
 check('就绪后不再显示缺模型警告', !mounted.includes('还不能开始生产'))
 check('批次列表不再为空态', !mounted.includes('还没有批次'))
 
