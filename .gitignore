@@ -1,0 +1,8 @@
+# 依赖
+**/node_modules/
+
+# 开发用 ffmpeg / ffprobe 二进制（约 200MB，按 README 放到这里或 PATH）
+tools/bin/
+
+# 验收产物（约 140MB，可用 content-studio/tools/acceptance.mjs 重新生成）
+demo-output/

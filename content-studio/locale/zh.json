@@ -1,0 +1,25 @@
+{
+  "meta": {
+    "title": "内容工坊",
+    "description": "内容批量生产的模型注册表：方舟 Seedance、本地 ComfyUI，以及任意自建 HTTP 视频服务。"
+  },
+  "title": "内容工坊",
+  "subtitle": "视频模型",
+  "empty": "还没有配置视频模型。添加一个就能开始生成镜头。",
+  "add": "添加模型",
+  "save": "保存",
+  "remove": "删除",
+  "health": "健康检查",
+  "test": "测试生成",
+  "enabled": "启用",
+  "kind": "适配器",
+  "baseUrl": "服务地址",
+  "modelId": "模型 ID",
+  "concurrency": "并发",
+  "advanced": "完整配置（JSON）",
+  "prompt": "测试提示词",
+  "result": "结果",
+  "running": "处理中",
+  "ok": "正常",
+  "failed": "失败"
+}

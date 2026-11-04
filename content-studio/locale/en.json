@@ -1,0 +1,25 @@
+{
+  "meta": {
+    "title": "Content Studio",
+    "description": "Provider registry for batch content production: Ark Seedance, local ComfyUI and any custom HTTP video service."
+  },
+  "title": "Content Studio",
+  "subtitle": "Video providers",
+  "empty": "No provider yet. Add one to start generating shots locally.",
+  "add": "Add provider",
+  "save": "Save",
+  "remove": "Remove",
+  "health": "Check health",
+  "test": "Test generation",
+  "enabled": "Enabled",
+  "kind": "Adapter",
+  "baseUrl": "Endpoint",
+  "modelId": "Model ID",
+  "concurrency": "Concurrency",
+  "advanced": "Full config (JSON)",
+  "prompt": "Test prompt",
+  "result": "Result",
+  "running": "Running",
+  "ok": "OK",
+  "failed": "Failed"
+}
