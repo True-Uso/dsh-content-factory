@@ -3,6 +3,10 @@ import { createRunner } from './lib/worker.js'
 
 const API_PREFIX = '/content-studio/api'
 
+export const name = 'content-studio'
+// 必须等 webServer 就绪再 apply；桌面版启动时它会晚于插件加载。
+export const inject = ['webServer']
+
 /**
  * Host half of Content Studio.
  *
