@@ -25,19 +25,28 @@ DeepSeek Harness（DSH）插件：**一句话批量生产社交媒体短视频**
 
 ## 安装
 
-### 本地开发（DSH Desktop）
-
-插件管理器支持直接安装本地目录：
+### 直接 GitHub（推荐给同事）
 
 1. **插件 → 添加插件**
-2. 安装来源填本仓库的 `content-studio` 目录
+2. 安装来源填：
+   `https://github.com/True-Uso/dsh-content-factory`
+3. 确认来源 → 安装；装完刷新，左侧栏出现「内容生产」
+
+仓库根目录是一个可安装的 DSH 包，实际代码在 [`content-studio/`](content-studio/)，根入口只负责转发 Host/Client。
+
+### 本地开发（DSH Desktop）
+
+插件管理器也可以直接安装本地目录：
+
+1. **插件 → 添加插件**
+2. 安装来源填本仓库根目录
 3. 装完刷新；左侧栏出现「内容生产」
 
 当前 profile 也可以通过 `link:` 指向本仓库，改代码后关开插件即可重载 Host 半侧。
 
 ### 团队分发（GitHub + 自建索引）
 
-代码留在 GitHub，另建一个公开的 metadata 索引仓库，同事在 DSH「插件 → 发现」添加索引源后一键安装/更新。完整步骤见 [docs/发布到GitHub.md](docs/发布到GitHub.md)。
+代码留在 GitHub，另建一个公开的 metadata 索引仓库，同事在 DSH「插件 → 发现」添加索引源后一键安装/更新。完整步骤见 [docs/发布到GitHub.md](docs/发布到GitHub.md)。索引的 source 指向仓库根目录（根包），不需要 `--path`。
 
 ---
 

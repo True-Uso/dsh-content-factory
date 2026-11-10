@@ -4,7 +4,6 @@
  *   node tools/make-index.mjs \
  *     --repo https://github.com/True-Uso/dsh-content-factory \
  *     --commit <40位 sha> \
- *     --path content-studio \
  *     --output ../dsh-content-factory-index/index.json
  *
  * 索引文件可以放在公开静态页（GitHub Pages / 内网静态主机）。
@@ -21,7 +20,7 @@ function arg(name, fallback = '') {
 }
 
 const repo = arg('repo')
-const packagePath = arg('path', 'content-studio').replace(/^\/+|\/+$/g, '')
+const packagePath = arg('path', '').replace(/^\/+|\/+$/g, '')
 const output = resolve(arg('output', 'index.json'))
 const commit = arg('commit') || execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim()
 const here = dirname(fileURLToPath(import.meta.url))

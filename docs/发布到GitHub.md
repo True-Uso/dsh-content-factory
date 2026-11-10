@@ -2,6 +2,9 @@
 
 目标：代码留在 GitHub 仓库（建议私有）；同事的 DSH 里出现一个「内容生产」安装入口，点一下就装好、能更新。
 
+> 仓库根目录现在就是可安装的 DSH 包，同事也可以直接在「插件 → 添加插件」里填
+> `https://github.com/True-Uso/dsh-content-factory`。下面的索引流程用于提供一键更新和统一入口。
+
 ## 1. 私有代码仓库
 
 把 `content-studio/` 推到 GitHub 仓库，例如：
@@ -40,13 +43,12 @@ dsh-content-factory-index/
 git rev-parse HEAD
 ```
 
-在 `content-studio/` 下生成索引：
+在仓库根目录生成索引：
 
 ```bash
-node tools/make-index.mjs \
+node content-studio/tools/make-index.mjs \
   --repo https://github.com/True-Uso/dsh-content-factory \
   --commit <40位commit> \
-  --path content-studio \
   --output ../dsh-content-factory-index/index.json
 ```
 

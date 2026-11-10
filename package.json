@@ -1,0 +1,46 @@
+{
+  "name": "dsh-content-factory",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./index.js",
+  "description": "DeepSeek Harness plugin: batch social video production with AI copy, voice, editing, covers, validation and review.",
+  "keywords": ["dsh", "dsh-plugin", "deepseek-harness", "content", "video", "short-video", "短视频", "内容生产"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/True-Uso/dsh-content-factory.git"
+  },
+  "homepage": "https://github.com/True-Uso/dsh-content-factory#readme",
+  "icon": "content-studio/icon.svg",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./content-studio/client.js",
+    "./locale/*.json": "./content-studio/locale/*.json",
+    "./icon": "./content-studio/icon.svg"
+  },
+  "files": [
+    "index.js",
+    "cordis.patch.yml",
+    "content-studio/index.js",
+    "content-studio/client.js",
+    "content-studio/lib",
+    "content-studio/locale",
+    "content-studio/icon.svg",
+    "README.md"
+  ],
+  "dependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "@ffprobe-installer/ffprobe": "^2.1.2"
+  },
+  "engines": {
+    "dsh": ">=0.2.1-rc.4 <0.3.0"
+  },
+  "dsh": {
+    "bundle": { "patch": "./cordis.patch.yml" },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": []
+    }
+  }
+}
