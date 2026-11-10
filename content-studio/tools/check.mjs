@@ -20,6 +20,7 @@ const files = [
   '../lib/worker.js',
   '../lib/zip.js',
   '../lib/export.js',
+  '../lib/postiz.js',
   '../lib/steps/cover.js',
   '../lib/steps/render.js',
   '../lib/steps/scan.js',

@@ -2,7 +2,7 @@
  * P0 单元与集成校验（无需网络、无需 ffmpeg）。
  *   node tools/test-pipeline.mjs
  */
-import { mkdtemp, rm, stat, utimes, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, rm, stat, utimes, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -10,7 +10,7 @@ process.env.CONTENT_STUDIO_HOME = await mkdtemp(join(tmpdir(), 'cs-test-'))
 
 const { splitText, buildCues, toSrt, formatTimestamp, buildStyle, toAss, formatAssTime } = await import('../lib/steps/subtitle.js')
 const { parseWav, writeWav, silence } = await import('../lib/wav.js')
-const { validateScript, estimateSeconds, generateScript } = await import('../lib/steps/script.js')
+const { validateScript, estimateSeconds, generateScript, buildScriptPrompt } = await import('../lib/steps/script.js')
 const { createBatch, loadBatch, updateItem, listBatches, markStep, resetStepsFrom, STEP_ORDER } = await import('../lib/batch-store.js')
 const { synthesizeVoice, verifyVoiceFile, pruneVoiceCache, voiceCacheDir } = await import('../lib/steps/voice.js')
 
@@ -93,6 +93,15 @@ const fakeLlm = {
 }
 const generated = await generateScript(fakeLlm, { topic: '秋季穿搭', targetSec: 12 })
 check('生成脚本返回 attempts', generated.attempts.length === 1)
+const revisedPrompt = buildScriptPrompt({
+  topic: '秋季穿搭',
+  targetSec: 12,
+  revision: { reason: '画面质量', note: '过山车改成摩天轮', previous: { title: '旧标题', narration: ['旧口播'], shots: ['过山车'] } },
+})
+check('驳回备注写进文案提示', revisedPrompt.includes('过山车改成摩天轮'))
+check('驳回原因写进文案提示', revisedPrompt.includes('画面质量'))
+check('上一版镜头写进文案提示', revisedPrompt.includes('过山车'))
+check('无驳回时提示不含修改要求', !buildScriptPrompt({ topic: '秋季穿搭', targetSec: 12 }).includes('上次被驳回'))
 
 /* ---------------- batch store ---------------- */
 console.log('\n[batch-store]')
@@ -122,10 +131,15 @@ const afterVoiceReset = await (await import('../lib/batch-store.js')).loadItem(b
 check('从 voice 重置不影响 script', afterVoiceReset.item.steps.script.status === 'running')
 check('从 voice 重置清空 voice', afterVoiceReset.item.steps.voice.status === 'pending')
 
+await mkdir(join(first.dir, '01-script'), { recursive: true })
+await writeFile(join(first.dir, '01-script', 'script.json'), '{"title":"旧"}')
 await resetStepsFrom(batch.id, first.id, 'script')
 const reset = await (await import('../lib/batch-store.js')).loadItem(batch.id, first.id)
 check('从 script 重置清空 script', reset.item.steps.script.status === 'pending')
 check('重置回 pending', reset.item.status === 'pending')
+let scriptGone = false
+try { await stat(join(first.dir, '01-script', 'script.json')) } catch { scriptGone = true }
+check('重置会清掉旧文案产物', scriptGone)
 check('步骤总数固定 8', STEP_ORDER.length === 8)
 check('批次列表可用', (await listBatches()).length === 1)
 

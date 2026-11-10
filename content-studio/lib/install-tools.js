@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process'
-import { copyFile, mkdir, mkdtemp, readdir, rm, stat, writeFile } from 'node:fs/promises'
+import { chmod, copyFile, mkdir, mkdtemp, readdir, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -27,6 +27,33 @@ async function works(file) {
   } catch {
     return false
   }
+}
+
+async function ensureExec(file) {
+  try {
+    await chmod(file, 0o755)
+  } catch {
+    // The install tree can be read-only; a mode bit set earlier still runs.
+  }
+}
+
+/** npm platform packages. ffprobe ships mode 0644, so chmod before the probe. */
+async function fromInstaller() {
+  const out = {}
+  for (const [key, spec] of [['ffmpeg', '@ffmpeg-installer/ffmpeg'], ['ffprobe', '@ffprobe-installer/ffprobe']]) {
+    try {
+      const mod = await import(spec)
+      const value = mod?.default || mod
+      if (typeof value?.path === 'string') out[key] = value.path
+    } catch {
+      // optional dependency
+    }
+  }
+  if (!out.ffmpeg || !out.ffprobe) return null
+  await ensureExec(out.ffmpeg)
+  await ensureExec(out.ffprobe)
+  if (await works(out.ffmpeg) && await works(out.ffprobe)) return out
+  return null
 }
 
 function pairIn(dir, platform = process.platform) {
@@ -63,8 +90,10 @@ async function findBundled() {
 
   for (const root of roots) {
     const pair = pairIn(root)
-    if (await exists(pair.ffmpeg) && await exists(pair.ffprobe) && await works(pair.ffmpeg)) {
-      return pair
+    if (await exists(pair.ffmpeg) && await exists(pair.ffprobe)) {
+      await ensureExec(pair.ffmpeg)
+      await ensureExec(pair.ffprobe)
+      if (await works(pair.ffmpeg) && await works(pair.ffprobe)) return pair
     }
   }
   return null
@@ -129,7 +158,7 @@ async function extractZip(zipPath, targetDir) {
 
 async function downloadPair(destination) {
   if (process.platform !== 'win32') {
-    throw new Error('自动下载目前只支持 Windows；请安装 ffmpeg 并加入 PATH')
+    throw new Error('Linux 不下载 Windows 包。插件自带的 ffmpeg/ffprobe 没能运行，请检查文件是否可执行。')
   }
   const res = await fetch(DOWNLOAD_URL, { redirect: 'follow' })
   if (!res.ok) throw new Error(`下载 ffmpeg 失败：HTTP ${res.status}`)
@@ -165,6 +194,19 @@ export async function installFfmpeg() {
     join(PLUGIN_ROOT, 'bin'),
     join(dataDir(), 'bin'),
   ].filter(Boolean))]
+
+  const packaged = await fromInstaller()
+  if (packaged) {
+    clearToolCache()
+    const tools = await resolveTools()
+    return {
+      ok: tools.ok,
+      source: 'package',
+      ffmpeg: packaged.ffmpeg,
+      ffprobe: packaged.ffprobe,
+      error: tools.error,
+    }
+  }
 
   const bundled = await findBundled()
   if (bundled) {

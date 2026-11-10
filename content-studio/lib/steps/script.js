@@ -39,6 +39,7 @@ export function buildScriptPrompt(input = {}) {
     materialCount = 0,
     shotCount = 8,
     avoidTitles = [],
+    revision,
   } = input
 
   const lines = [
@@ -51,6 +52,17 @@ export function buildScriptPrompt(input = {}) {
   if (groups.length > 0) lines.push(`素材库现有分类：${groups.join('、')}（library 镜头的 intent 请落在这些分类上）`)
   if (materialCount > 0) lines.push(`素材库可用素材约 ${materialCount} 个`)
   if (avoidTitles.length > 0) lines.push(`避免与这些已用标题重复：${avoidTitles.slice(0, 10).join(' / ')}`)
+  if (revision && (revision.reason || revision.note || revision.previous)) {
+    lines.push('上次被驳回，必须按审核意见改写整条脚本（口播、镜头、封面都改到位），不要只改标题，也不要原样照抄上一版。')
+    if (revision.reason) lines.push(`驳回原因：${revision.reason}`)
+    if (revision.note) lines.push(`修改要求：${revision.note}`)
+    if (revision.previous) {
+      const prev = revision.previous
+      if (prev.title) lines.push(`上一版标题：${prev.title}`)
+      if (Array.isArray(prev.narration) && prev.narration.length) lines.push(`上一版口播：${prev.narration.join('/')}`)
+      if (Array.isArray(prev.shots) && prev.shots.length) lines.push(`上一版镜头：${prev.shots.join('/')}`)
+    }
+  }
   lines.push('请按系统提示的 JSON 结构输出这一条视频的完整脚本。')
   return lines.join('\n')
 }

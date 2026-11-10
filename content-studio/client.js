@@ -67,45 +67,52 @@ window.__ModuleLoader__.load({
 
     const CSS = `
 .cs-page {
-  --cs-radius: var(--dsw-radius-md, 8px);
-  --cs-radius-lg: var(--dsw-radius-lg, 12px);
-  --cs-border: var(--dsw-alias-border-l2, color-mix(in srgb, currentColor 12%, transparent));
-  --cs-border-strong: var(--dsw-alias-border-l4, color-mix(in srgb, currentColor 20%, transparent));
-  --cs-text: var(--dsw-alias-label-primary, currentColor);
-  --cs-text-2: var(--dsw-alias-label-secondary, color-mix(in srgb, currentColor 72%, transparent));
-  --cs-text-3: var(--dsw-alias-label-tertiary, color-mix(in srgb, currentColor 55%, transparent));
+  --cs-ink: var(--dsw-alias-label-primary, #16171c);
+  --cs-paper: var(--dsw-alias-bg-layer-1, transparent);
+  --cs-well: color-mix(in srgb, #243044 8%, var(--dsw-alias-bg-layer-1, #f3f4f6));
+  --cs-display: "Noto Serif CJK SC", "Source Han Serif SC", "Songti SC", "STSong", "Noto Serif SC", Palatino, serif;
+  --cs-radius: 2px;
+  --cs-radius-lg: 4px;
+  --cs-border: var(--dsw-alias-border-l2, color-mix(in srgb, currentColor 14%, transparent));
+  --cs-border-strong: color-mix(in srgb, var(--cs-ink) 28%, transparent);
+  --cs-text: var(--cs-ink);
+  --cs-text-2: var(--dsw-alias-label-secondary, color-mix(in srgb, var(--cs-ink) 68%, transparent));
+  --cs-text-3: var(--dsw-alias-label-tertiary, color-mix(in srgb, var(--cs-ink) 48%, transparent));
   --cs-fill: var(--dsw-alias-bg-layer-1, transparent);
   --cs-fill-2: var(--dsw-alias-bg-layer-3, color-mix(in srgb, currentColor 5%, transparent));
   --cs-fill-3: var(--dsw-alias-bg-layer-4, color-mix(in srgb, currentColor 8%, transparent));
   --cs-hover: var(--dsw-alias-interactive-bg-hover, color-mix(in srgb, currentColor 6%, transparent));
-  --cs-accent: var(--dsw-alias-state-business-primary, color-mix(in srgb, currentColor 80%, transparent));
+  --cs-accent: var(--cs-ink);
   --cs-success: var(--dsw-alias-state-success-primary, #2ea043);
   --cs-warn: var(--dsw-alias-state-warn-primary, #d29922);
   --cs-danger: var(--dsw-alias-state-error-primary, #f85149);
-  color: var(--cs-text); font-size: 13px; line-height: 1.5;
+  color: var(--cs-text); font-size: 14px; line-height: 1.45;
+  font-family: "Noto Sans CJK SC", "Source Han Sans SC", "PingFang SC", "Hiragino Sans GB", system-ui, sans-serif;
+  display: flex; flex-direction: column;
 }
-.cs-page { flex: 1 1 auto; height: 100%; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; scrollbar-gutter: stable; }
-.cs-page-inner { display: flex; flex-direction: column; gap: 16px; padding: 20px 24px 48px; max-width: 1200px; margin: 0 auto; width: 100%; }
+.cs-page { flex: 1 1 auto; height: 100%; min-height: 0; overflow: hidden; overscroll-behavior: contain; }
+.cs-page-inner { display: flex; flex-direction: column; gap: 0; padding: 0; margin: 0; width: 100%; height: 100%; min-height: 0; max-width: none; }
 .cs-page *, .cs-page *::before, .cs-page *::after { box-sizing: border-box; }
 .cs-page h1, .cs-page h2, .cs-page h3, .cs-page p { margin: 0; }
-.cs-page ::selection { background: color-mix(in srgb, var(--cs-accent) 22%, transparent); }
-.cs-page :focus-visible { outline: 2px solid var(--dsw-focus-ring-color, var(--cs-accent)); outline-offset: 1px; }
-.cs-page button { font-family: inherit; transition: filter 150ms ease, background-color 150ms ease, border-color 150ms ease; }
-.cs-page button:hover:not(:disabled) { filter: brightness(0.97); }
-.cs-page button:active:not(:disabled) { filter: brightness(0.93); }
-.cs-page button:disabled { opacity: 0.4; cursor: not-allowed; }
-.cs-page input:focus, .cs-page select:focus, .cs-page textarea:focus { border-color: var(--cs-accent) !important; outline: none; }
+.cs-page ::selection { background: color-mix(in srgb, var(--cs-ink) 16%, transparent); }
+.cs-page :focus-visible { outline: 2px solid var(--cs-ink); outline-offset: 2px; }
+.cs-page button { font-family: inherit; }
+.cs-page button:disabled { cursor: not-allowed; opacity: 0.42; }
+.cs-page input:focus, .cs-page select:focus, .cs-page textarea:focus { outline: none; }
 .cs-page input::placeholder, .cs-page textarea::placeholder { color: var(--cs-text-3); }
 
-.cs-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-.cs-title { font-size: 18px; line-height: 26px; font-weight: 600; letter-spacing: -0.01em; }
-.cs-subtitle { margin-top: 4px; font-size: 12px; line-height: 18px; color: var(--cs-text-3); }
-.cs-header-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.cs-chrome { display: flex; align-items: baseline; gap: 28px; padding: 18px 28px 10px; flex-shrink: 0; }
+.cs-header { display: contents; }
+.cs-title { font-family: var(--cs-display); font-size: 30px; line-height: 1; font-weight: 600; }
+.cs-subtitle { display: none; }
+.cs-header-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.cs-body { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; padding: 0 28px 20px; overflow: hidden; }
+.cs-body.is-scroll { overflow-y: auto; overscroll-behavior: contain; }
 
-.cs-tabs { display: flex; gap: 2px; border-bottom: 0.5px solid var(--cs-border); }
-.cs-tab { height: 36px; padding: 0 12px; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; border-radius: 0; background: transparent; color: var(--cs-text-2); font-size: 13px; cursor: pointer; }
-.cs-tab:hover { color: var(--cs-text); background: var(--cs-hover); }
-.cs-tab.is-active { color: var(--cs-text); border-bottom-color: var(--cs-text); font-weight: 600; }
+.cs-tabs { display: flex; gap: 4px; border: 0; align-items: baseline; }
+.cs-tab { height: auto; padding: 0 2px; border: 0; border-bottom: 0; margin: 0; border-radius: 0; background: transparent; color: var(--cs-text-3); font-size: 14px; line-height: 28px; cursor: pointer; }
+.cs-tab:hover { color: var(--cs-text); background: transparent; }
+.cs-tab.is-active { color: var(--cs-text); font-weight: 600; box-shadow: inset 0 -2px 0 var(--cs-ink); }
 
 .cs-stats { display: flex; align-items: stretch; border: 0.5px solid var(--cs-border); border-radius: var(--cs-radius-lg); background: var(--cs-fill); overflow: hidden; }
 .cs-stat { flex: 1; min-width: 0; padding: 10px 16px; border-left: 0.5px solid var(--cs-border); }
@@ -113,20 +120,77 @@ window.__ModuleLoader__.load({
 .cs-stat-label { display: block; font-size: 11px; line-height: 16px; color: var(--cs-text-3); }
 .cs-stat-value { display: block; margin-top: 2px; font-size: 18px; line-height: 24px; font-weight: 600; font-variant-numeric: tabular-nums; }
 
-.cs-stack { display: flex; flex-direction: column; gap: 16px; }
+.cs-stack { display: flex; flex-direction: column; gap: 12px; }
+.cs-body > .cs-stack { flex: 1 1 auto; min-height: 0; }
 .cs-stat-inline { display: inline-flex; align-items: baseline; gap: 4px; font-size: 12px; color: var(--cs-text-3); }
 .cs-stat-inline strong { color: var(--cs-text); font-weight: 600; font-variant-numeric: tabular-nums; }
 
-.cs-composer { padding: 18px 18px 14px; gap: 10px; }
-.cs-composer:focus-within { border-color: var(--cs-accent); }
-.cs-prompt-input { width: 100%; min-height: 74px; padding: 0; border: 0; background: transparent; color: var(--cs-text); font: inherit; font-size: 15px; line-height: 1.6; resize: vertical; outline: none; }
-.cs-composer-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.cs-composer-bar .cs-hint { flex: 1 1 240px; }
-.cs-composer-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding-top: 2px; }
-.cs-composer-meta .cs-input { flex: 1 1 240px; }
-.cs-chip { height: 28px; padding: 0 10px; border: 0.5px solid var(--cs-border-strong); border-radius: 999px; background: transparent; color: var(--cs-text-2); font-size: 12px; cursor: pointer; }
-.cs-chip:hover { background: var(--cs-hover); }
-.cs-chip.is-active { border-color: var(--cs-accent); color: var(--cs-accent); background: color-mix(in srgb, var(--cs-accent) 8%, transparent); }
+.cs-prompt { display: flex; flex-direction: column; gap: 12px; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; position: static; }
+.cs-prompt-input { width: 100%; min-height: 72px; max-height: 160px; padding: 0; border: 0; resize: none; background: transparent; color: inherit; font: inherit; font-size: 16px; line-height: 1.55; }
+.cs-prompt-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.cs-prompt-bar .cs-statusline { flex: 0 1 auto; min-width: 0; }
+.cs-refs { display: flex; gap: 8px; flex-wrap: wrap; }
+.cs-ref { position: relative; width: 48px; height: 48px; }
+.cs-ref img { width: 100%; height: 100%; object-fit: cover; border-radius: 2px; display: block; }
+.cs-ref-x { position: absolute; top: -4px; right: -4px; width: 18px; height: 18px; padding: 0; border: 0; border-radius: 2px; background: var(--cs-ink); color: #fff; font-size: 12px; line-height: 18px; cursor: pointer; }
+.cs-file { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.cs-intake { display: grid; grid-template-columns: minmax(0, 1.7fr) 88px minmax(0, 0.7fr) minmax(0, 1fr); gap: 12px 14px; padding: 16px 18px 0; }
+.cs-intake-dir { grid-column: 1 / -1; display: flex; align-items: flex-end; gap: 8px; }
+.cs-intake-dir .cs-field { flex: 1; }
+.cs-dispatch { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px 18px 16px; }
+.cs-statusline { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; line-height: 18px; color: var(--cs-text-2); }
+.cs-lanes { display: grid; grid-template-columns: 1fr 1fr; border-top: 0.5px solid var(--cs-border); }
+.cs-lane { padding: 14px 18px 16px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.cs-lane + .cs-lane { border-left: 0.5px solid var(--cs-border); }
+.cs-lane-kicker { font-size: 12px; line-height: 18px; color: var(--cs-text-3); }
+.cs-lane-title { font-size: 14px; line-height: 22px; font-weight: 600; }
+.cs-lane-foot { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 0 18px 16px; }
+.cs-log-mark { font-size: 12px; font-weight: 600; white-space: nowrap; }
+.cs-log-mark.is-ok { color: var(--cs-success); }
+.cs-log-mark.is-bad { color: var(--cs-danger); }
+.cs-log-mark.is-wait { color: var(--cs-warn); }
+.cs-chip { height: 36px; padding: 0 12px; border: 1px solid var(--cs-border-strong); border-radius: 2px; background: transparent; color: var(--cs-text-2); font-size: 13px; cursor: pointer; }
+.cs-chip:hover { background: var(--cs-hover); color: var(--cs-text); }
+.cs-chip.is-active { border-color: var(--cs-ink); color: #fff; background: var(--cs-ink); }
+
+.cs-studio { display: flex; flex-direction: column; gap: 12px; flex: 1 1 auto; min-height: 0; }
+.cs-studio-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.cs-well { flex: 1 1 auto; min-height: 0; overflow: auto; background: var(--cs-well); border-radius: 2px; padding: 8px 0 0; }
+.cs-gates { display: grid; grid-template-columns: repeat(4, 128px); gap: 12px; align-content: start; }
+.cs-gates.is-wide { grid-template-columns: repeat(4, 200px); }
+.cs-gates.is-square { grid-template-columns: repeat(4, 128px); }
+.cs-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 10px; align-content: start; }
+.cs-well-copy { grid-column: 1 / -1; margin: 2px 0 0; color: var(--cs-text-2); font-size: 13px; line-height: 1.5; }
+.cs-gate { aspect-ratio: 9 / 16; border: 1px dashed color-mix(in srgb, var(--cs-ink) 28%, transparent); background: color-mix(in srgb, var(--cs-ink) 4%, transparent); border-radius: 2px; }
+.cs-shot { position: relative; border-radius: 2px; overflow: hidden; background: #141414; aspect-ratio: 9 / 16; border: 1px solid color-mix(in srgb, var(--cs-ink) 20%, transparent); cursor: pointer; }
+.cs-shot.is-wide, .cs-gate.is-wide { aspect-ratio: 16 / 9; }
+.cs-shot.is-square, .cs-gate.is-square { aspect-ratio: 1 / 1; }
+.cs-shot.is-on { box-shadow: inset 0 0 0 2px var(--cs-ink); }
+.cs-shot video { width: 100%; height: 100%; object-fit: cover; display: block; background: #141414; pointer-events: none; }
+.cs-shot-ph { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #bbb; font-size: 13px; padding: 12px; text-align: center; }
+.cs-shot-check { position: absolute; top: 8px; left: 8px; width: 16px; height: 16px; margin: 0; appearance: none; border: 1px solid #fff; background: transparent; border-radius: 2px; }
+.cs-shot-check:checked { background: #fff; }
+.cs-shot-act { position: absolute; left: 8px; right: 8px; bottom: 8px; display: flex; gap: 6px; }
+.cs-shot-act .cs-btn { height: 28px; padding: 0 10px; font-size: 12px; background: #fff; color: #141414; border: 0; border-radius: 2px; }
+.cs-shot-x { position: absolute; top: 6px; right: 6px; z-index: 2; width: 24px; height: 24px; border: 0; border-radius: 2px; background: rgb(0 0 0 / 55%); color: #fff; font-size: 16px; line-height: 1; cursor: pointer; }
+.cs-shot-time { position: absolute; right: 8px; bottom: 40px; font-size: 11px; color: #fff; text-shadow: 0 1px 2px #000; }
+.cs-preview { position: fixed; inset: 0; z-index: 1200; background: rgb(0 0 0 / 72%); display: flex; align-items: center; justify-content: center; padding: 24px; }
+.cs-preview-box { width: min(420px, 92vw); display: flex; flex-direction: column; gap: 10px; }
+.cs-preview-box video { width: 100%; max-height: 78vh; background: #000; pointer-events: auto; }
+.cs-preview-cap { margin: 0; color: #fff; font-size: 13px; line-height: 1.5; }
+.cs-preview-bar { display: flex; gap: 8px; }
+.cs-seg { display: inline-flex; height: 36px; border: 1px solid var(--cs-ink); border-radius: 2px; overflow: hidden; }
+.cs-seg-btn { height: 36px; padding: 0 12px; border: 0; border-right: 1px solid var(--cs-ink); border-radius: 0; background: transparent; color: var(--cs-ink); font-size: 13px; cursor: pointer; }
+.cs-seg-btn:last-child { border-right: 0; }
+.cs-seg-btn.is-on { background: var(--cs-ink); color: #fff; }
+.cs-dock { flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; padding: 12px 0 4px; border: 0; border-top: 1px solid var(--cs-border-strong); border-radius: 0; background: transparent; }
+.cs-dock-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.cs-dur { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--cs-text-2); }
+.cs-dur-input { width: 72px; height: 36px; padding: 0 8px; border: 1px solid var(--cs-ink); border-radius: 2px; background: transparent; color: inherit; font: inherit; font-size: 13px; }
+.cs-go { display: inline-flex; align-items: center; justify-content: center; height: 36px; min-width: 88px; padding: 0 20px; border: 0; border-radius: 2px; background: var(--cs-ink); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; }
+.cs-go:hover:not(:disabled) { background: color-mix(in srgb, var(--cs-ink) 88%, #fff); }
+.cs-go:disabled { opacity: 1; }
+.cs-films { flex-shrink: 0; display: flex; flex-direction: column; gap: 0; border-top: 1px solid var(--cs-border); margin-top: 8px; padding-top: 8px; }
 
 .cs-thread { display: flex; flex-direction: column; gap: 10px; }
 .cs-chat-user { align-self: flex-end; max-width: 82%; padding: 10px 12px; border-radius: 12px 12px 4px 12px; background: var(--cs-fill-2); font-size: 13px; line-height: 1.5; white-space: pre-wrap; }
@@ -143,14 +207,15 @@ window.__ModuleLoader__.load({
 .cs-card-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .cs-section-title { font-size: 12px; font-weight: 600; color: var(--cs-text-2); line-height: 18px; }
 
-.cs-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 30px; padding: 0 12px; border: 0.5px solid transparent; border-radius: var(--cs-radius); background: transparent; color: var(--cs-text); font-size: 12px; line-height: 18px; cursor: pointer; white-space: nowrap; }
+.cs-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 36px; padding: 0 14px; border: 1px solid transparent; border-radius: 2px; background: transparent; color: var(--cs-text); font-size: 13px; line-height: 18px; cursor: pointer; white-space: nowrap; }
 .cs-btn:hover:not(:disabled) { background: var(--cs-hover); }
-.cs-btn-primary { background: var(--dsw-alias-button-primary-fill, var(--cs-text)); color: var(--dsw-alias-label-primary-foreground, #fff); border-color: transparent; }
-.cs-btn-primary:hover:not(:disabled) { background: var(--dsw-alias-button-primary-hover, var(--cs-text)); }
-.cs-btn-outline { border-color: var(--cs-border-strong); background: transparent; }
-.cs-btn-outline:hover:not(:disabled) { background: var(--cs-hover); }
-.cs-btn-ghost { background: transparent; }
-.cs-btn-sm { height: 26px; padding: 0 9px; font-size: 12px; }
+.cs-btn-primary { background: var(--cs-ink); color: #fff; border-color: var(--cs-ink); }
+.cs-btn-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--cs-ink) 88%, #fff); }
+.cs-btn-outline { border-color: var(--cs-ink); background: transparent; }
+.cs-btn-outline:hover:not(:disabled) { background: var(--cs-ink); color: #fff; }
+.cs-btn-ghost { background: transparent; color: var(--cs-text-2); padding: 0; height: auto; border: 0; font-size: 13px; }
+.cs-btn-ghost:hover:not(:disabled) { background: transparent; color: var(--cs-text); }
+.cs-btn-sm { height: 32px; padding: 0 12px; font-size: 13px; }
 .cs-btn-danger { color: var(--cs-danger); }
 .cs-btn-danger:hover:not(:disabled) { background: color-mix(in srgb, var(--cs-danger) 8%, transparent); }
 
@@ -174,6 +239,8 @@ window.__ModuleLoader__.load({
 .cs-span-full { grid-column: 1 / -1; }
 .cs-form-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding-top: 12px; border-top: 0.5px solid var(--cs-border); }
 .cs-form-actions .cs-hint { margin-left: auto; }
+.cs-check { display: inline-flex; align-items: center; gap: 8px; height: 36px; font-size: 13px; cursor: pointer; }
+.cs-check input { width: 16px; height: 16px; margin: 0; accent-color: var(--cs-ink); }
 
 .cs-alert { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 0.5px solid; border-radius: var(--cs-radius); font-size: 12px; line-height: 18px; }
 .cs-alert-warning { border-color: color-mix(in srgb, var(--cs-warn) 35%, transparent); background: color-mix(in srgb, var(--cs-warn) 8%, transparent); }
@@ -195,7 +262,7 @@ window.__ModuleLoader__.load({
 .cs-row-main { display: flex; align-items: center; gap: 8px; min-width: 0; flex-wrap: wrap; }
 .cs-row-title { font-size: 12px; font-weight: 600; }
 .cs-row-meta { font-size: 12px; color: var(--cs-text-3); white-space: nowrap; }
-.cs-empty { padding: 24px 12px; text-align: center; color: var(--cs-text-3); font-size: 12px; line-height: 18px; }
+.cs-empty { padding: 8px 0; text-align: left; color: var(--cs-text-3); font-size: 13px; line-height: 20px; }
 
 .cs-detail { display: flex; flex-direction: column; gap: 14px; }
 .cs-detail-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
@@ -213,10 +280,22 @@ window.__ModuleLoader__.load({
 .cs-cost { display: flex; flex-direction: column; gap: 6px; }
 .cs-cost-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--cs-text-2); }
 
-.cs-review-grid { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); gap: 16px; }
-.cs-review-pane { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-.cs-media { width: 100%; max-height: 420px; border-radius: var(--cs-radius); background: #000; object-fit: contain; }
-.cs-cover { width: 100%; height: auto; border: 0.5px solid var(--cs-border); border-radius: var(--cs-radius); display: block; }
+.cs-review { display: flex; flex-direction: column; min-height: 0; border: 0.5px solid var(--cs-border); border-radius: var(--cs-radius-lg); background: var(--cs-fill); }
+.cs-review-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 0.5px solid var(--cs-border); }
+.cs-review-desk { display: grid; grid-template-columns: minmax(220px, 300px) minmax(0, 1fr); min-height: 0; }
+.cs-review-stage { display: flex; align-items: center; justify-content: center; padding: 16px; background: #141414; min-height: 0; }
+.cs-review-phone { width: min(100%, 260px); max-height: min(58vh, 520px); background: #000; }
+.cs-review-phone video { width: 100%; max-height: min(58vh, 520px); display: block; background: #000; object-fit: contain; }
+.cs-review-side { display: flex; flex-direction: column; gap: 12px; min-width: 0; padding: 16px; border-left: 0.5px solid var(--cs-border); }
+.cs-cover-strip { display: flex; align-items: flex-end; gap: 8px; flex-wrap: wrap; }
+.cs-cover-thumb { padding: 0; border: 0.5px solid var(--cs-border-strong); border-radius: 2px; background: #111; cursor: pointer; overflow: hidden; line-height: 0; }
+.cs-cover-thumb:hover { box-shadow: inset 0 0 0 1px var(--cs-ink); }
+.cs-cover-thumb img { display: block; height: 88px; width: auto; object-fit: cover; }
+.cs-cover-thumb.is-wide img { height: 52px; }
+.cs-cover-thumb.is-sq img { width: 52px; height: 52px; }
+.cs-review-decide { display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; border-top: 0.5px solid var(--cs-border); background: var(--cs-fill); }
+.cs-preview-box.is-cover { width: auto; max-width: 92vw; }
+.cs-preview-box.is-cover img { display: block; max-width: 92vw; max-height: 82vh; background: #000; }
 .cs-pre { margin: 0; padding: 10px; border-radius: var(--cs-radius); border: 0.5px solid var(--cs-border); max-height: 220px; overflow: auto; font-size: 11px; line-height: 1.6; white-space: pre-wrap; word-break: break-all; background: var(--cs-fill-2); }
 .cs-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
 .cs-muted { color: var(--cs-text-3); font-size: 12px; line-height: 18px; }
@@ -238,8 +317,13 @@ window.__ModuleLoader__.load({
 .cs-dir-enter { color: var(--cs-text-3); }
 .cs-modal-actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 8px; border-top: 0.5px solid var(--cs-border); }
 @media (max-width: 820px) {
-  .cs-page-inner { padding: 12px 12px 40px; }
-  .cs-review-grid { grid-template-columns: 1fr; }
+  .cs-chrome, .cs-body { padding-left: 16px; padding-right: 16px; }
+  .cs-page-inner { padding: 0; }
+  .cs-review-desk, .cs-lanes { grid-template-columns: 1fr; }
+  .cs-review-side { border-left: 0; border-top: 0.5px solid var(--cs-border); }
+  .cs-review-phone, .cs-review-phone video { max-height: 42vh; }
+  .cs-intake { grid-template-columns: 1fr 1fr; }
+  .cs-lane + .cs-lane { border-left: 0; border-top: 0.5px solid var(--cs-border); }
   .cs-stats { flex-wrap: wrap; }
   .cs-stat { flex: 1 1 40%; border-left: 0; border-top: 0.5px solid var(--cs-border); }
   .cs-stat:nth-child(-n+2) { border-top: 0; }
@@ -591,41 +675,29 @@ window.__ModuleLoader__.load({
       if (!health) return null
       const ffmpegMissing = !health.ffmpeg?.ok
       const roles = new Set((health.providers || []).filter((p) => p.enabled).map((p) => p.role))
-      const missing = ['llm', 'tts', 'video'].filter((role) => !roles.has(role))
-      if (!ffmpegMissing && missing.length === 0) return null
+      const missingVideo = !roles.has('video')
+      const missingFinish = ['llm', 'tts'].filter((role) => !roles.has(role))
+      if (!ffmpegMissing && !missingVideo && missingFinish.length === 0) return null
 
       const summary = [
         ffmpegMissing ? 'ffmpeg 未就绪' : null,
-        missing.length > 0 ? `缺少${missing.map((role) => ROLE_ZH[role]).join('、')}` : null,
+        missingVideo ? '缺少视频模型' : null,
+        !missingVideo && missingFinish.length > 0 ? `成片还缺${missingFinish.map((role) => ROLE_ZH[role]).join('、')}` : null,
       ].filter(Boolean).join('；')
 
-      return h('div', { className: 'cs-alert cs-alert-warning', role: 'status' },
-        h(AlertIcon),
-        h('div', { className: 'cs-alert-body' },
-          h('div', { className: 'cs-alert-title' }, '还不能开始生产'),
-          h('p', { className: 'cs-alert-text' }, summary),
-          h('div', { className: 'cs-alert-actions' },
-            ffmpegMissing
-              ? h('button', {
-                  className: 'cs-btn cs-btn-sm cs-btn-outline',
-                  disabled: installing,
-                  onClick: onInstallFfmpeg,
-                }, installing ? '安装中…' : '安装 ffmpeg')
-              : null,
-            missing.length > 0
-              ? h('button', { className: 'cs-btn cs-btn-sm cs-btn-outline', onClick: onConfigure }, '去配置模型')
-              : null,
-          ),
-          installError
-            ? h('div', { className: 'cs-hint', style: { color: 'var(--cs-danger)' } }, installError)
-            : null,
-          ffmpegMissing && health.ffmpeg?.error
-            ? h('details', { className: 'cs-hint' },
-                h('summary', { style: { cursor: 'pointer' } }, '查看 ffmpeg 错误'),
-                h('p', { style: { margin: '4px 0 0' } }, health.ffmpeg.error),
-              )
-            : null,
-        ),
+      return h('div', { className: 'cs-statusline', role: 'status' },
+        h('span', null, summary),
+        ffmpegMissing
+          ? h('button', {
+              className: 'cs-btn cs-btn-sm cs-btn-outline',
+              disabled: installing,
+              onClick: onInstallFfmpeg,
+            }, installing ? '安装中…' : '安装 ffmpeg')
+          : null,
+        missingVideo || missingFinish.length > 0
+          ? h('button', { className: 'cs-btn cs-btn-sm cs-btn-ghost', onClick: onConfigure }, '配置模型')
+          : null,
+        installError ? h('span', { style: { color: 'var(--cs-danger)' } }, installError) : null,
       )
     }
 
@@ -893,11 +965,11 @@ window.__ModuleLoader__.load({
               ),
               h(StepStrip, { steps: item.steps }),
               h('div', { className: 'cs-item-actions' },
-                item.status === 'review_pending'
+                item.status === 'review_pending' || item.status === 'rejected'
                   ? h('button', {
                       className: 'cs-btn cs-btn-primary cs-btn-sm',
-                      onClick: () => onOpenReview(item.id, batch.items.filter((i) => i.status === 'review_pending').map((i) => i.id)),
-                    }, '去审核')
+                      onClick: () => onOpenReview(item.id, batch.items.filter((i) => i.status === 'review_pending' || i.status === 'rejected').map((i) => i.id)),
+                    }, item.status === 'rejected' ? '按备注重做' : '去审核')
                   : null,
                 item.status === 'approved'
                   ? h('button', {
@@ -906,7 +978,7 @@ window.__ModuleLoader__.load({
                       onClick: () => exportItem(item),
                     }, exporting === item.id ? '导出中…' : '导出发布包')
                   : null,
-                item.status === 'failed'
+                item.status === 'failed' || item.status === 'rejected' || item.status === 'pending'
                   ? h('button', {
                       className: 'cs-btn cs-btn-outline cs-btn-sm',
                       onClick: () => act('retry', `/items/${item.id}/retry`),
@@ -923,6 +995,12 @@ window.__ModuleLoader__.load({
     /* ------------------------------------------------------------------ */
     /* 审核                                                             */
     /* ------------------------------------------------------------------ */
+    const COVER_THUMBS = [
+      ['vertical', '竖版', 'cover-vertical.png', ''],
+      ['horizontal', '横版', 'cover-horizontal.png', ' is-wide'],
+      ['square', '方图', 'cover-square.png', ' is-sq'],
+    ]
+
     function ReviewCard({ itemId, onDone, index, total, onPrev, onNext }) {
       const [data, setData] = useState(null)
       const [error, setError] = useState('')
@@ -930,6 +1008,7 @@ window.__ModuleLoader__.load({
       const [note, setNote] = useState('')
       const [busy, setBusy] = useState('')
       const [saved, setSaved] = useState(false)
+      const [zoom, setZoom] = useState(null)
       const [draft, setDraft] = useState({ title: '', description: '', hashtags: '', coverMain: '', coverSub: '' })
 
       const load = useCallback(async () => {
@@ -960,6 +1039,10 @@ window.__ModuleLoader__.load({
       // 必须在任何 early return 之前注册，否则 hooks 顺序会随渲染变化。
       useEffect(() => {
         const onKey = (event) => {
+          if (event.key === 'Escape' && zoom) {
+            setZoom(null)
+            return
+          }
           const tag = String(event.target?.tagName || '').toLowerCase()
           if (tag === 'input' || tag === 'textarea' || tag === 'select') return
           const status = data?.item?.status
@@ -975,7 +1058,7 @@ window.__ModuleLoader__.load({
         }
         window.addEventListener('keydown', onKey)
         return () => window.removeEventListener('keydown', onKey)
-      }, [itemId, data, note, reason, onNext, onPrev, load, onDone])
+      }, [itemId, data, note, reason, zoom, onNext, onPrev, load, onDone])
 
       const act = async (label, path, body) => {
         setBusy(label)
@@ -997,9 +1080,11 @@ window.__ModuleLoader__.load({
       const base = media.base
       const approved = item.status === 'approved'
       const rejected = item.status === 'rejected'
+      const canDecide = item.status === 'review_pending'
+      const covers = COVER_THUMBS.filter(([key]) => (media.covers?.[key] || 0) > 0)
 
-      return h('div', { className: 'cs-card cs-stack' },
-        h('div', { className: 'cs-card-head' },
+      return h('div', { className: 'cs-review' },
+        h('div', { className: 'cs-review-head' },
           h('div', { className: 'cs-row-main' },
             h('h2', { className: 'cs-card-title' }, script?.title || item.title || item.id),
             h(Badge, { tone: STATUS_TONE[item.status] || '' }, ITEM_STATUS_ZH[item.status] || item.status),
@@ -1015,16 +1100,14 @@ window.__ModuleLoader__.load({
           ),
         ),
 
-        h('div', { className: 'cs-review-grid' },
-          h('div', { className: 'cs-review-pane' },
+        h('div', { className: 'cs-review-desk' },
+          h('div', { className: 'cs-review-stage' },
             media.master > 0
-              ? h('video', { key: `${itemId}-${media.master}`, src: `${base}/06-render/master.mp4`, controls: true, className: 'cs-media' })
+              ? h('div', { className: 'cs-review-phone' },
+                  h('video', { key: `${itemId}-${media.master}`, src: `${base}/06-render/master.mp4`, controls: true }))
               : h('div', { className: 'cs-empty' }, '成片尚未生成'),
-            media.covers.vertical > 0
-              ? h('img', { src: `${base}/07-cover/cover-vertical.png`, className: 'cs-cover' })
-              : null,
           ),
-          h('div', { className: 'cs-review-pane' },
+          h('div', { className: 'cs-review-side' },
             h('label', { className: 'cs-field' },
               h('span', { className: 'cs-label' }, '标题'),
               h('input', {
@@ -1046,6 +1129,20 @@ window.__ModuleLoader__.load({
                 value: draft.hashtags, disabled: busy !== '' || approved,
                 onChange: (e) => setDraft({ ...draft, hashtags: e.target.value }),
               })),
+            covers.length
+              ? h('div', { className: 'cs-field' },
+                  h('span', { className: 'cs-label' }, '封面 · 点击放大'),
+                  h('div', { className: 'cs-cover-strip' },
+                    covers.map(([key, label, file, kind]) => h('button', {
+                      key,
+                      type: 'button',
+                      className: `cs-cover-thumb${kind}`,
+                      title: label,
+                      'aria-label': `放大${label}封面`,
+                      onClick: () => setZoom({ src: `${base}/07-cover/${file}`, label }),
+                    }, h('img', { src: `${base}/07-cover/${file}`, alt: label })))),
+                )
+              : null,
             h('div', { className: 'cs-form-grid', style: { gridTemplateColumns: '1fr 1fr' } },
               h('label', { className: 'cs-field' },
                 h('span', { className: 'cs-label' }, '封面主文案'),
@@ -1103,75 +1200,94 @@ window.__ModuleLoader__.load({
           ),
         ),
 
-        h('div', { className: 'cs-actions' },
-          h('button', {
-            className: 'cs-btn cs-btn-primary cs-btn-sm',
-            disabled: busy !== '' || approved,
-            onClick: () => act('approve', `/items/${itemId}/approve`, { note }),
-          }, '通过'),
-          h('select', {
-            className: 'cs-select', style: { width: 150 },
-            value: reason, onChange: (e) => setReason(e.target.value),
-          },
-            REVIEW_REASONS.map((reasonText) => h('option', { key: reasonText, value: reasonText }, reasonText))),
-          h('input', {
-            className: 'cs-input', style: { flex: '1 1 160px' },
-            placeholder: '驳回备注', value: note, onChange: (e) => setNote(e.target.value),
-          }),
-          h('button', {
-            className: 'cs-btn cs-btn-outline cs-btn-sm',
-            disabled: busy !== '',
-            onClick: () => act('reject', `/items/${itemId}/reject`, { reason, note }),
-          }, '驳回'),
-          approved
-            ? h('button', {
+        h('div', { className: 'cs-review-decide' },
+          h('div', { className: 'cs-actions' },
+            h('button', {
+              className: 'cs-btn cs-btn-primary',
+              disabled: busy !== '' || !canDecide,
+              onClick: () => act('approve', `/items/${itemId}/approve`, { note }),
+            }, '通过'),
+            h('select', {
+              className: 'cs-select', style: { width: 150 },
+              value: reason, onChange: (e) => setReason(e.target.value),
+            },
+              REVIEW_REASONS.map((reasonText) => h('option', { key: reasonText, value: reasonText }, reasonText))),
+            h('input', {
+              className: 'cs-input', style: { flex: '1 1 160px' },
+              placeholder: '写明要改什么，驳回后会按这条重生成', value: note, onChange: (e) => setNote(e.target.value),
+            }),
+            h('button', {
+              className: 'cs-btn cs-btn-outline',
+              disabled: busy !== '' || !canDecide,
+              onClick: () => act('reject', `/items/${itemId}/reject`, { reason, note }),
+            }, '驳回并重做'),
+            approved
+              ? h('button', {
+                  className: 'cs-btn cs-btn-ghost cs-btn-sm',
+                  disabled: busy !== '',
+                  onClick: () => act('unapprove', `/items/${itemId}/unapprove`),
+                }, '撤回通过')
+              : null,
+            rejected || item.status === 'pending'
+              ? h('button', {
+                  className: 'cs-btn cs-btn-ghost cs-btn-sm',
+                  onClick: () => act('retry', `/items/${itemId}/retry`),
+                }, '重新入队')
+              : null,
+          ),
+          h('div', { className: 'cs-actions' },
+            h('span', { className: 'cs-hint' }, '局部重做'),
+            ['script', 'voice', 'render', 'cover'].map((step) =>
+              h('button', {
+                key: step,
                 className: 'cs-btn cs-btn-ghost cs-btn-sm',
-                disabled: busy !== '',
-                onClick: () => act('unapprove', `/items/${itemId}/unapprove`),
-              }, '撤回通过')
-            : null,
+                disabled: busy !== '' || approved,
+                onClick: () => act(`rerun-${step}`, `/items/${itemId}/rerun`, { from: step }),
+              }, `${STEP_ZH[step] || step}起`)),
+          ),
         ),
 
-        h('div', { className: 'cs-actions' },
-          h('span', { className: 'cs-hint' }, '局部重做：'),
-          ['script', 'voice', 'render', 'cover'].map((step) =>
-            h('button', {
-              key: step,
-              className: 'cs-btn cs-btn-outline cs-btn-sm',
-              disabled: busy !== '' || approved,
-              onClick: () => act(`rerun-${step}`, `/items/${itemId}/rerun`, { from: step }),
-            }, `${STEP_ZH[step] || step}起`)),
-          rejected
-            ? h('button', {
-                className: 'cs-btn cs-btn-ghost cs-btn-sm',
-                onClick: () => act('retry', `/items/${itemId}/retry`),
-              }, '重新入队')
-            : null,
-        ),
+        zoom
+          ? h('div', { className: 'cs-preview', onClick: () => setZoom(null) },
+              h('div', { className: 'cs-preview-box is-cover', onClick: (event) => event.stopPropagation() },
+                h('img', { src: zoom.src, alt: zoom.label }),
+                h('p', { className: 'cs-preview-cap' }, zoom.label),
+                h('button', { className: 'cs-btn cs-btn-outline', onClick: () => setZoom(null) }, '关闭'),
+              ))
+          : null,
       )
     }
 
     /* ------------------------------------------------------------------ */
     /* 模型配置                                                          */
     /* ------------------------------------------------------------------ */
+    const KIND_ZH = {
+      'dashscope-wan': '百炼万相', llm: '文案', tts: '配音', image: '生图',
+      comfyui: 'ComfyUI', 'http-generic': '本地 HTTP', 'ark-seedance': '方舟 Seedance',
+    }
     const PRESETS = {
+      wan: {
+        id: 'bailian-wan', kind: 'dashscope-wan', enabled: true,
+        origin: 'https://dashscope.aliyuncs.com', model: 'wan2.2-t2v-plus', apiKey: '',
+        defaults: { durationSec: 5, aspectRatio: '9:16', resolution: '480P' },
+      },
       llm: {
-        id: 'gpt-text', kind: 'llm', enabled: false, baseUrl: 'https://api.openai.com/v1', model: 'gpt-4.1-mini', apiKey: '',
+        id: 'gpt-text', kind: 'llm', enabled: true, baseUrl: 'https://api.openai.com/v1', model: 'gpt-4.1-mini', apiKey: '',
       },
       tts: {
-        id: 'bailian-tts', kind: 'tts', enabled: false,
-        baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', model: 'qwen-tts', voice: 'Cherry', apiKey: '',
+        id: 'bailian-tts', kind: 'tts', enabled: true,
+        baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', model: 'qwen3-tts-flash', voice: 'Cherry', apiKey: '',
       },
       image: {
-        id: 'gpt-image', kind: 'image', enabled: false, baseUrl: 'https://api.openai.com/v1', model: 'gpt-image-1', apiKey: '',
+        id: 'gpt-image', kind: 'image', enabled: true, baseUrl: 'https://api.openai.com/v1', model: 'gpt-image-1', apiKey: '',
       },
       comfyui: {
-        id: 'local-comfyui', kind: 'comfyui', enabled: false, baseUrl: 'http://127.0.0.1:8188',
+        id: 'local-comfyui', kind: 'comfyui', enabled: false, baseUrl: 'http://127.0.0.1:8188', model: '',
         defaults: { width: 768, height: 1344, durationSec: 5, fps: 24 },
-        limits: { concurrency: 1 }, workflowRef: 'D:\\素材\\ltx-t2v.json',
+        limits: { concurrency: 1 }, workflowRef: '/home/spark01/comfyui/ltx-t2v-5s-api.json',
       },
       httpGeneric: {
-        id: 'local-http', kind: 'http-generic', enabled: false, baseUrl: 'http://127.0.0.1:9000',
+        id: 'local-http', kind: 'http-generic', enabled: true, baseUrl: 'http://127.0.0.1:9000',
         defaults: { width: 768, height: 1344, durationSec: 5, fps: 24 }, limits: { concurrency: 1 },
         protocol: {
           health: { method: 'GET', path: '/health' },
@@ -1181,14 +1297,41 @@ window.__ModuleLoader__.load({
           stateMap: { queued: ['pending', 'queued'], running: ['running'], succeeded: ['success', 'done'], failed: ['error', 'failed'] },
         },
       },
-      ark: { id: 'seedance', kind: 'ark-seedance', enabled: false, modelId: '', apiKey: '' },
+      ark: {
+        id: 'seedance', kind: 'ark-seedance', enabled: true,
+        baseUrl: 'https://ark.cn-beijing.volces.com/api/v3/contents/generations/tasks',
+        modelId: '', apiKey: '',
+      },
+    }
+    const URL_HINT = {
+      'dashscope-wan': 'https://dashscope.aliyuncs.com',
+      llm: 'https://api.openai.com/v1 或兼容网关',
+      tts: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+      image: 'https://api.openai.com/v1 或兼容网关',
+      comfyui: 'http://127.0.0.1:8188',
+      'http-generic': 'http://127.0.0.1:9000',
+      'ark-seedance': 'https://ark.cn-beijing.volces.com/api/v3/contents/generations/tasks',
+    }
+
+    function providerFields(kind) {
+      const name = ['id', '名称']
+      const key = ['apiKey', 'API Key']
+      const url = kind === 'dashscope-wan' ? ['origin', '地址'] : ['baseUrl', '地址']
+      const model = ['model', '模型']
+      if (kind === 'dashscope-wan') return [name, url, model, key]
+      if (kind === 'llm' || kind === 'image') return [name, url, model, key]
+      if (kind === 'tts') return [name, url, model, ['voice', '音色'], key]
+      if (kind === 'comfyui') return [name, url, model, ['workflowRef', '工作流文件']]
+      if (kind === 'http-generic') return [name, url]
+      if (kind === 'ark-seedance') return [name, url, ['modelId', '模型'], key]
+      return [name, url]
     }
 
     function ProvidersPage() {
       const [providers, setProviders] = useState([])
       const [health, setHealth] = useState(null)
       const [draft, setDraft] = useState(null)
-      const [text, setText] = useState('')
+      const [models, setModels] = useState([])
       const [result, setResult] = useState(null)
       const [busy, setBusy] = useState('')
 
@@ -1201,46 +1344,80 @@ window.__ModuleLoader__.load({
       useEffect(() => { load().catch((e) => setResult({ ok: false, title: '读取失败', detail: e.message })) }, [load])
 
       const startEdit = (provider) => {
-        setDraft(provider)
-        setText(JSON.stringify(provider, null, 2))
+        setDraft({ ...provider, apiKey: '', _existing: true })
+        setModels([])
         setResult(null)
       }
       const addPreset = (key) => {
-        setDraft(PRESETS[key])
-        setText(JSON.stringify(PRESETS[key], null, 2))
+        setDraft({ ...PRESETS[key], _existing: false })
+        setModels([])
         setResult(null)
       }
-      const save = async () => {
-        let parsed
+      const patch = (key, value) => {
+        setDraft((current) => ({ ...current, [key]: value }))
+      }
+      const probe = async (want, id) => {
+        const payload = draft && (!id || draft.id === id)
+          ? (() => {
+              const { _existing, hasApiKey, ...rest } = draft
+              return { ...rest, apiKey: rest.apiKey || (hasApiKey ? '__stored__' : ''), want }
+            })()
+          : { id, want }
+        setBusy(want === 'models' ? `models:${id || draft?.id || 'draft'}` : want === 'test' ? `test:${id || draft?.id || 'draft'}` : `health:${id || draft?.id || 'draft'}`)
         try {
-          parsed = JSON.parse(text)
+          const data = await api('POST', '/probe', payload)
+          if (want === 'test') {
+            setResult({
+              ok: data.job?.status === 'succeeded',
+              title: '试生成',
+              detail: data.job?.detail || data.job?.error || data.health?.detail || '',
+            })
+          } else if (want === 'models') {
+            const list = data.models || []
+            setModels(list)
+            const video = list.filter((id) => /t2v|i2v|video/i.test(id))
+            setResult({
+              ok: data.health?.ok !== false && list.length > 0,
+              title: '上游模型',
+              detail: list.length === 0
+                ? (data.health?.detail || '没有模型')
+                : video.length
+                  ? `${list.length} 个，在「模型」下拉里选`
+                  : `${list.length} 个，没有视频（t2v/i2v）。兼容地址常只列对话/图片；视频万相把地址改成 https://dashscope.aliyuncs.com，同一把 Key 再拉一次。`,
+            })
+          } else {
+            setResult({
+              ok: data.health?.ok !== false,
+              title: '连通',
+              detail: data.health?.detail || (data.health?.ok ? '已连通' : '未连通'),
+            })
+          }
         } catch (e) {
-          setResult({ ok: false, title: 'JSON 解析失败', detail: e.message })
-          return
-        }
-        if (!/^[A-Za-z0-9._-]{1,64}$/.test(parsed.id || '')) {
-          setResult({ ok: false, title: 'id 不合法', detail: '字母、数字、点、下划线、短横线，≤64' })
-          return
-        }
-        setBusy('save')
-        try {
-          await api('PUT', `/providers/${encodeURIComponent(parsed.id)}`, parsed)
-          setDraft(null)
-          await load()
-          setResult({ ok: true, title: '已保存', detail: parsed.id })
-        } catch (e) {
-          setResult({ ok: false, title: '保存失败', detail: e.message })
+          setResult({ ok: false, title: want === 'models' ? '获取模型失败' : '连通失败', detail: e.message })
         } finally {
           setBusy('')
         }
       }
-      const check = async (id) => {
-        setBusy(`health:${id}`)
+      const save = async () => {
+        if (!draft) return
+        const { _existing, hasApiKey, ...rest } = draft
+        const payload = {
+          ...rest,
+          apiKey: rest.apiKey || (hasApiKey ? '__stored__' : ''),
+        }
+        if (!/^[A-Za-z0-9._-]{1,64}$/.test(payload.id || '')) {
+          setResult({ ok: false, title: '名称不合法', detail: '字母、数字、点、下划线、短横线，≤64' })
+          return
+        }
+        setBusy('save')
         try {
-          const data = await api('POST', `/providers/${encodeURIComponent(id)}/health`)
-          setResult({ ok: data.health?.ok !== false, title: `${id} 健康检查`, detail: data.health?.detail || (data.health?.ok ? '正常' : '不可用') })
+          await api('PUT', `/providers/${encodeURIComponent(payload.id)}`, payload)
+          setDraft(null)
+          setModels([])
+          await load()
+          setResult({ ok: true, title: '已保存', detail: payload.id })
         } catch (e) {
-          setResult({ ok: false, title: `${id} 检查失败`, detail: e.message })
+          setResult({ ok: false, title: '保存失败', detail: e.message })
         } finally {
           setBusy('')
         }
@@ -1276,16 +1453,16 @@ window.__ModuleLoader__.load({
               `ffmpeg ${health.ffmpeg.ok ? '已就绪' : '不可用'} · 队列 ${health.queue ? `${health.queue.active.length} 运行 / ${health.queue.queued} 排队` : '未启动'}`)
           : null,
         h('div', { className: 'cs-actions' },
-          h('button', { className: 'cs-btn cs-btn-outline cs-btn-sm', onClick: () => addPreset('llm') }, '＋ 文案模型'),
-          h('button', { className: 'cs-btn cs-btn-outline cs-btn-sm', onClick: () => addPreset('tts') }, '＋ 配音模型'),
-          h('button', { className: 'cs-btn cs-btn-outline cs-btn-sm', onClick: () => addPreset('image') }, '＋ 生图模型'),
-          h('button', { className: 'cs-btn cs-btn-outline cs-btn-sm', onClick: () => addPreset('comfyui') }, '＋ 本地 ComfyUI'),
-          h('button', { className: 'cs-btn cs-btn-outline cs-btn-sm', onClick: () => addPreset('httpGeneric') }, '＋ 本地 HTTP'),
-          h('button', { className: 'cs-btn cs-btn-ghost cs-btn-sm', onClick: () => addPreset('ark') }, '＋ 方舟 Seedance（预留）'),
+          h('button', { className: 'cs-btn cs-btn-outline', onClick: () => addPreset('wan') }, '＋ 百炼万相'),
+          h('button', { className: 'cs-btn cs-btn-outline', onClick: () => addPreset('llm') }, '＋ 文案模型'),
+          h('button', { className: 'cs-btn cs-btn-outline', onClick: () => addPreset('tts') }, '＋ 配音模型'),
+          h('button', { className: 'cs-btn cs-btn-outline', onClick: () => addPreset('image') }, '＋ 生图模型'),
+          h('button', { className: 'cs-btn cs-btn-outline', onClick: () => addPreset('comfyui') }, '＋ 本地 ComfyUI'),
+          h('button', { className: 'cs-btn cs-btn-outline', onClick: () => addPreset('httpGeneric') }, '＋ 本地 HTTP'),
+          h('button', { className: 'cs-btn cs-btn-ghost', onClick: () => addPreset('ark') }, '＋ 方舟 Seedance（预留）'),
         ),
-        providers.length === 0
-          ? h('div', { className: 'cs-card' },
-              h('div', { className: 'cs-empty' }, '还没有配置任何模型。至少要配一个文案模型、一个配音模型、一个视频模型才能产出。'))
+        providers.length === 0 && !draft
+          ? h('p', { className: 'cs-empty' }, '还没有模型。生成用百炼万相或本机 ComfyUI；成片配音/封面再加文案和配音。')
           : null,
         providers.map((provider) =>
           h('div', { key: provider.id, className: 'cs-card' },
@@ -1293,39 +1470,102 @@ window.__ModuleLoader__.load({
               h('div', { className: 'cs-row-main' },
                 h('span', { className: 'cs-dot', style: { opacity: provider.enabled !== false ? 1 : 0.3 } }),
                 h('span', { className: 'cs-card-title' }, provider.id),
-                h(Badge, { tone: 'neutral' }, provider.kind),
-                provider.kind === 'ark-seedance' && !provider.modelId
-                  ? h('span', { className: 'cs-hint' }, '未配置模型 ID')
-                  : null,
+                h(Badge, { tone: provider.enabled !== false ? 'ok' : 'neutral' }, provider.enabled !== false ? '已启用' : '未启用'),
+                h(Badge, { tone: 'neutral' }, KIND_ZH[provider.kind] || provider.kind),
               ),
               h('div', { className: 'cs-actions' },
                 h('button', {
-                  className: 'cs-btn cs-btn-ghost cs-btn-sm',
+                  className: 'cs-btn cs-btn-ghost',
                   disabled: busy === `health:${provider.id}`,
-                  onClick: () => check(provider.id),
-                }, '健康检查'),
+                  onClick: () => probe('health', provider.id),
+                }, '测试联通'),
                 h('button', {
-                  className: 'cs-btn cs-btn-ghost cs-btn-sm',
+                  className: 'cs-btn cs-btn-ghost',
+                  disabled: busy === `models:${provider.id}` || provider.kind === 'http-generic',
+                  onClick: () => probe('models', provider.id),
+                }, busy === `models:${provider.id}` ? '获取中…' : '获取模型'),
+                h('button', {
+                  className: 'cs-btn cs-btn-ghost',
                   disabled: busy === `test:${provider.id}`,
                   onClick: () => test(provider.id),
-                }, busy === `test:${provider.id}` ? '测试中…' : '测试'),
-                h('button', { className: 'cs-btn cs-btn-ghost cs-btn-sm', onClick: () => startEdit(provider) }, '编辑'),
-                h('button', { className: 'cs-btn cs-btn-danger cs-btn-sm', onClick: () => remove(provider.id) }, '删除'),
+                }, busy === `test:${provider.id}` ? '测试中…' : '试生成'),
+                h('button', { className: 'cs-btn cs-btn-ghost', onClick: () => startEdit(provider) }, '编辑'),
+                h('button', { className: 'cs-btn cs-btn-danger', onClick: () => remove(provider.id) }, '删除'),
               ),
             ),
-            provider.baseUrl ? h('div', { className: 'cs-mono' }, provider.baseUrl) : null,
+            (provider.origin || provider.baseUrl)
+              ? h('div', { className: 'cs-muted' }, provider.origin || provider.baseUrl)
+              : null,
           ),
         ),
         draft
           ? h('div', { className: 'cs-card' },
-              h('p', { className: 'cs-muted' }, '整段 JSON 就是配置，保存后立即生效。apiKey 显示 __stored__ 表示已保存；填新值即替换，留空即清除。'),
-              h('textarea', {
-                className: 'cs-textarea cs-mono', style: { minHeight: 180 },
-                value: text, spellCheck: false, onChange: (e) => setText(e.target.value),
-              }),
-              h('div', { className: 'cs-actions' },
-                h('button', { className: 'cs-btn cs-btn-primary cs-btn-sm', onClick: save, disabled: busy === 'save' }, '保存'),
-                h('button', { className: 'cs-btn cs-btn-ghost cs-btn-sm', onClick: () => setDraft(null) }, '取消'),
+              h('div', { className: 'cs-card-head' },
+                h('h2', { className: 'cs-card-title' }, draft._existing ? '编辑模型' : `添加${KIND_ZH[draft.kind] || '模型'}`),
+              ),
+              h('label', { className: 'cs-check' },
+                h('input', {
+                  type: 'checkbox',
+                  checked: draft.enabled !== false,
+                  onChange: (event) => patch('enabled', event.target.checked),
+                }),
+                '启用',
+              ),
+              h('p', { className: 'cs-hint' }, '各家地址不一样，按上游文档填。保存前可先测联通、拉模型。'),
+              h('div', { className: 'cs-form-grid' },
+                providerFields(draft.kind).map(([key, label]) => {
+                  const isUrl = key === 'baseUrl' || key === 'origin'
+                  const isModel = key === 'model' || key === 'modelId'
+                  return h('label', {
+                    key,
+                    className: isUrl || isModel || key === 'apiKey' || key === 'workflowRef' ? 'cs-field cs-span-full' : 'cs-field',
+                  },
+                    h('span', { className: 'cs-label' }, label),
+                    isModel && models.length
+                      ? h('select', {
+                          className: 'cs-select',
+                          value: draft[key] || '',
+                          onChange: (event) => patch(key, event.target.value),
+                        },
+                          draft[key] && !models.includes(draft[key])
+                            ? h('option', { value: draft[key] }, draft[key])
+                            : h('option', { value: '' }, `从上游选择（${models.length}）`),
+                          models.map((name) => h('option', { key: name, value: name }, name)),
+                        )
+                      : h('input', {
+                          className: 'cs-input',
+                          type: key === 'apiKey' ? 'password' : 'text',
+                          value: draft[key] || '',
+                          placeholder: key === 'apiKey' && draft.hasApiKey
+                            ? '已保存，留空则不改'
+                            : isUrl ? (URL_HINT[draft.kind] || '') : '',
+                          autoComplete: key === 'apiKey' ? 'off' : undefined,
+                          readOnly: key === 'id' && draft._existing,
+                          onChange: (event) => patch(key, event.target.value),
+                        }),
+                  )
+                }),
+              ),
+              h('div', { className: 'cs-form-actions' },
+                h('button', {
+                  className: 'cs-btn cs-btn-outline',
+                  disabled: Boolean(busy),
+                  onClick: () => probe('health'),
+                }, busy.startsWith('health:') ? '检测中…' : '测试联通'),
+                draft.kind === 'http-generic'
+                  ? null
+                  : h('button', {
+                      className: 'cs-btn cs-btn-outline',
+                      disabled: Boolean(busy),
+                      onClick: () => probe('models'),
+                    }, busy.startsWith('models:') ? '获取中…' : '获取模型'),
+                h('button', {
+                  className: 'cs-btn cs-btn-outline',
+                  disabled: Boolean(busy),
+                  onClick: () => probe('test'),
+                }, busy.startsWith('test:') ? '生成中…' : '试生成'),
+                h('button', { className: 'cs-btn cs-btn-primary', onClick: save, disabled: busy === 'save' }, '保存'),
+                h('button', { className: 'cs-btn cs-btn-ghost', onClick: () => { setDraft(null); setModels([]) } }, '取消'),
               ),
             )
           : null,
@@ -1335,7 +1575,7 @@ window.__ModuleLoader__.load({
                 h(Badge, { tone: result.ok ? 'ok' : 'bad' }, result.ok ? '成功' : '失败'),
                 h('span', { className: 'cs-card-title' }, result.title),
               ),
-              result.detail ? h('pre', { className: 'cs-pre' }, String(result.detail).slice(0, 500)) : null,
+              result.detail ? h('p', { className: 'cs-muted' }, String(result.detail).slice(0, 500)) : null,
             )
           : null,
       )
@@ -1343,12 +1583,30 @@ window.__ModuleLoader__.load({
 
     function ReadyPage({ refreshKey, platforms = [], onError }) {
       const [batches, setBatches] = useState([])
+      const [postiz, setPostiz] = useState(null)
+      const [channels, setChannels] = useState([])
+      const [picked, setPicked] = useState([])
+      const [form, setForm] = useState({ apiUrl: 'https://api.postiz.com', apiKey: '' })
       const [busy, setBusy] = useState('')
+      const [notice, setNotice] = useState('')
 
       const load = useCallback(async () => {
         try {
-          const data = await api('GET', '/batches')
-          setBatches(data.batches || [])
+          const [list, cfg] = await Promise.all([api('GET', '/batches'), api('GET', '/postiz')])
+          setBatches(list.batches || [])
+          setPostiz(cfg)
+          setForm((current) => ({ ...current, apiUrl: cfg.apiUrl || current.apiUrl }))
+          if (cfg.hasApiKey) {
+            try {
+              const data = await api('GET', '/postiz/channels')
+              setChannels(data.channels || [])
+            } catch (error) {
+              setChannels([])
+              onError?.(error.message)
+            }
+          } else {
+            setChannels([])
+          }
         } catch (error) {
           onError?.(error.message)
         }
@@ -1364,7 +1622,7 @@ window.__ModuleLoader__.load({
       }
 
       const download = async (item) => {
-        setBusy(item.id)
+        setBusy(`zip:${item.id}`)
         try {
           await downloadZip(`/items/${item.id}/export`, `content-studio-item-${String(item.seq).padStart(3, '0')}.zip`)
         } catch (error) {
@@ -1374,17 +1632,106 @@ window.__ModuleLoader__.load({
         }
       }
 
+      const savePostiz = async () => {
+        setBusy('postiz')
+        setNotice('')
+        try {
+          const saved = await api('POST', '/postiz', {
+            apiUrl: form.apiUrl,
+            apiKey: form.apiKey || (postiz?.hasApiKey ? '__stored__' : ''),
+          })
+          setPostiz(saved)
+          setForm((current) => ({ ...current, apiKey: '' }))
+          setNotice(saved.hasApiKey ? 'Postiz 已保存，正在拉账号' : '已清掉密钥')
+          await load()
+        } catch (error) {
+          onError?.(error.message)
+        } finally {
+          setBusy('')
+        }
+      }
+
+      const distribute = async (item) => {
+        if (!picked.length) {
+          onError?.('先勾选要发到的 Postiz 账号')
+          return
+        }
+        setBusy(`dist:${item.id}`)
+        setNotice('')
+        try {
+          const data = await api('POST', `/items/${item.id}/distribute`, { integrationIds: picked })
+          const names = (data.distribute?.channels || []).map((channel) => channel.name).join('、')
+          setNotice(`已交给 Postiz：${names || '已提交'}`)
+          await load()
+        } catch (error) {
+          onError?.(error.message)
+        } finally {
+          setBusy('')
+        }
+      }
+
+      const toggle = (id) => {
+        setPicked((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id])
+      }
+
       return h('div', { className: 'cs-stack' },
+        h('p', { className: 'cs-hint' },
+          '导出发布包是成片、封面和文案的 zip，给抖音 / 小红书 / 视频号手工发。Postiz 没有这些国内号。已接的 TikTok / YouTube 等可以在这里直接分发。'),
         h('div', { className: 'cs-card' },
           h('div', { className: 'cs-card-head' },
-            h('h2', { className: 'cs-card-title' }, '待发布'),
+            h('h2', { className: 'cs-card-title' }, 'Postiz'),
+            h('span', { className: 'cs-muted' }, postiz?.hasApiKey ? `${channels.length} 个账号` : '未连接'),
+          ),
+          h('div', { className: 'cs-form-grid' },
+            h('label', { className: 'cs-field' },
+              h('span', { className: 'cs-label' }, 'API 地址'),
+              h('input', {
+                className: 'cs-input',
+                value: form.apiUrl,
+                placeholder: 'https://api.postiz.com 或自建 https://host/api',
+                onChange: (event) => setForm({ ...form, apiUrl: event.target.value }),
+              })),
+            h('label', { className: 'cs-field' },
+              h('span', { className: 'cs-label' }, 'API 密钥'),
+              h('input', {
+                className: 'cs-input',
+                type: 'password',
+                value: form.apiKey,
+                placeholder: postiz?.hasApiKey ? '已保存，留空则不改' : '从 Postiz 设置里复制',
+                autoComplete: 'off',
+                onChange: (event) => setForm({ ...form, apiKey: event.target.value }),
+              })),
+          ),
+          h('div', { className: 'cs-actions' },
+            h('button', {
+              className: 'cs-btn cs-btn-outline cs-btn-sm',
+              disabled: busy !== '',
+              onClick: savePostiz,
+            }, busy === 'postiz' ? '保存中…' : '保存并拉账号'),
+          ),
+          channels.length
+            ? h('div', { className: 'cs-cover-strip', style: { marginTop: 8 } },
+                channels.map((channel) => h('button', {
+                  key: channel.id,
+                  type: 'button',
+                  className: `cs-chip${picked.includes(channel.id) ? ' is-active' : ''}`,
+                  onClick: () => toggle(channel.id),
+                }, `${channel.name} · ${channel.identifier}`)))
+            : postiz?.hasApiKey
+              ? h('p', { className: 'cs-hint' }, '密钥已保存，但没有拉到账号。检查地址，或去 Postiz 先连频道。')
+              : null,
+        ),
+        h('div', { className: 'cs-card' },
+          h('div', { className: 'cs-card-head' },
+            h('h2', { className: 'cs-card-title' }, '待分发'),
             h('div', { className: 'cs-card-actions' },
               h('span', { className: 'cs-muted' }, `${rows.length} 条`),
               h('button', { className: 'cs-btn cs-btn-ghost cs-btn-sm', onClick: load }, '刷新'),
             ),
           ),
+          notice ? h('p', { className: 'cs-hint' }, notice) : null,
           rows.length === 0
-            ? h('div', { className: 'cs-empty' }, '还没有待发布的条目。审核通过的条目会出现在这里。')
+            ? h('div', { className: 'cs-empty' }, '还没有待分发的条目。审核通过后会出现在这里。')
             : h('div', { className: 'cs-list' },
                 rows.map(({ batch, item }) => h('div', {
                   key: item.id,
@@ -1393,52 +1740,33 @@ window.__ModuleLoader__.load({
                 },
                   h('div', { className: 'cs-row-main' },
                     h('span', { className: 'cs-row-title' }, item.title || item.id),
-                    h(Badge, { tone: 'ok' }, '已通过'),
-                    h('span', { className: 'cs-row-meta' }, platformLabel(platforms, batch.config?.platform)),
+                    h(Badge, { tone: item.distribute?.at ? 'info' : 'ok' }, item.distribute?.at ? '已分发' : '已通过'),
                     h('span', { className: 'cs-row-meta' }, item.durationSec ? `${item.durationSec.toFixed(1)}s` : ''),
+                    item.distribute?.channels?.length
+                      ? h('span', { className: 'cs-row-meta' }, item.distribute.channels.map((channel) => channel.name).join('、'))
+                      : null,
                     h('span', { className: 'cs-row-meta' }, batch.title),
                   ),
-                  h('button', {
-                    className: 'cs-btn cs-btn-primary cs-btn-sm',
-                    disabled: busy === item.id,
-                    onClick: () => download(item),
-                  }, busy === item.id ? '导出中…' : '导出发布包'),
+                  h('div', { className: 'cs-actions' },
+                    h('button', {
+                      className: 'cs-btn cs-btn-primary cs-btn-sm',
+                      disabled: busy !== '' || !picked.length,
+                      onClick: () => distribute(item),
+                    }, busy === `dist:${item.id}` ? '分发中…' : '分发'),
+                    h('button', {
+                      className: 'cs-btn cs-btn-ghost cs-btn-sm',
+                      disabled: busy !== '',
+                      onClick: () => download(item),
+                    }, busy === `zip:${item.id}` ? '导出中…' : '导出 zip'),
+                  ),
                 )),
               ),
         ),
       )
     }
 
-    function SettingsPage({ platforms = [] }) {
-      return h('div', { className: 'cs-stack' },
-        h(ProvidersPage),
-        h('div', { className: 'cs-card' },
-          h('div', { className: 'cs-card-head' },
-            h('h2', { className: 'cs-card-title' }, '平台预设'),
-          ),
-          h('p', { className: 'cs-muted' }, 'v1 复用同一组已验证规格；平台差异先只影响标题字数提示，后续可按平台调参。'),
-          h('table', { className: 'cs-table' },
-            h('thead', null,
-              h('tr', null,
-                h('th', null, '平台'),
-                h('th', null, '画幅'),
-                h('th', null, '目标时长'),
-                h('th', null, '标题上限'),
-                h('th', null, '封面'),
-              ),
-            ),
-            h('tbody', null,
-              platforms.map((platform) => h('tr', { key: platform.id },
-                h('td', null, platform.label),
-                h('td', null, platform.aspectRatio),
-                h('td', null, `${platform.targetSec}s`),
-                h('td', null, `${platform.titleMaxLength} 字`),
-                h('td', null, `${platform.coverWidth}×${platform.coverHeight}`),
-              )),
-            ),
-          ),
-        ),
-      )
+    function SettingsPage() {
+      return h(ProvidersPage)
     }
 
     function DirectoryPicker({ services, open, onClose, onPick }) {
@@ -1518,200 +1846,296 @@ window.__ModuleLoader__.load({
       )
     }
 
-    function CreateComposer({ platforms = [], services, onCreated, onAdjust, onPickDirectory }) {
-      const [brief, setBrief] = useState('')
-      const [dirs, setDirs] = useState('')
-      const [parsing, setParsing] = useState(false)
-      const [creating, setCreating] = useState(false)
-      const [plan, setPlan] = useState(null)
-      const [error, setError] = useState('')
-      const [notice, setNotice] = useState(null)
-      const [busy, setBusy] = useState('')
-      const [scanned, setScanned] = useState(null)
-
-      const dirList = useMemo(
-        () => dirs.split(/[\n;,]/).map((entry) => entry.trim()).filter(Boolean),
-        [dirs],
+    function Seg({ value, onChange, options, label }) {
+      return h('div', { className: 'cs-seg', role: 'group', 'aria-label': label },
+        options.map(([id, text]) => h('button', {
+          key: String(id),
+          type: 'button',
+          className: `cs-seg-btn${value === id ? ' is-on' : ''}`,
+          onClick: () => onChange(id),
+        }, text)),
       )
+    }
 
-      const scan = async () => {
-        if (dirList.length === 0) return
-        setBusy('scan')
+    function CreateComposer({ readiness, onCreated }) {
+      const [prompt, setPrompt] = useState('')
+      const [refs, setRefs] = useState([])
+      const [aspect, setAspect] = useState('9:16')
+      const [resolution, setResolution] = useState('480P')
+      const CLIP_PRESETS = [15, 30, 60, 90]
+      const CLIP_MAX_SEC = 180
+      const [targetSec, setTargetSec] = useState(30)
+      const [customDur, setCustomDur] = useState(false)
+      const [clips, setClips] = useState([])
+      const [picked, setPicked] = useState([])
+      const [busy, setBusy] = useState('')
+      const [error, setError] = useState('')
+      const [notice, setNotice] = useState('')
+      const [preview, setPreview] = useState(null)
+      const [playing, setPlaying] = useState(false)
+
+      const loadClips = useCallback(async () => {
+        const data = await api('GET', '/clips')
+        setClips(data.clips || [])
+      }, [])
+
+      useEffect(() => { loadClips().catch((e) => setError(e.message)) }, [loadClips])
+      useEffect(() => {
+        if (!clips.some((clip) => clip.status === 'running')) return undefined
+        const timer = setInterval(() => { loadClips().catch(() => {}) }, 3000)
+        return () => clearInterval(timer)
+      }, [clips, loadClips])
+
+      const addRefs = (fileList) => {
+        const next = [...fileList].filter((file) => file.type.startsWith('image/')).map((file) => ({
+          name: file.name,
+          url: URL.createObjectURL(file),
+        }))
+        setRefs((current) => [...current, ...next].slice(0, 4))
+      }
+
+      const generate = async () => {
+        if (!prompt.trim()) {
+          setError('先写提示词')
+          return
+        }
+        setBusy('gen')
         setError('')
+        setNotice('')
         try {
-          const result = await api('POST', '/materials/scan', { dirs: dirList })
-          setScanned(result)
-        } catch (scanError) {
-          setError(scanError.message)
+          const data = await api('POST', '/clips', { prompt: prompt.trim(), aspectRatio: aspect, resolution, durationSec: targetSec })
+          if (targetSec > 30) setNotice(`${targetSec} 秒会按每段最多 30 秒首尾帧接龙，最长 ${CLIP_MAX_SEC} 秒。要等几分钟，按秒计费。`)
+          else if (targetSec >= 15) setNotice(`${targetSec} 秒镜头生成中，大约几分钟。`)
+          setClips((current) => [data.clip, ...current.filter((clip) => clip.id !== data.clip.id)])
+        } catch (genError) {
+          setError(genError.message)
         } finally {
           setBusy('')
         }
       }
 
-      const parse = async () => {
-        if (!brief.trim()) {
-          setError('先用一句话描述你想生产什么')
+      const film = async (clipIds) => {
+        if (!clipIds.length) {
+          setError('先勾选镜头')
           return
         }
-        setParsing(true)
+        setBusy('film')
         setError('')
-        setNotice(null)
         try {
-          setPlan(await api('POST', '/batches/parse', { brief: brief.trim() }))
-        } catch (parseError) {
-          setError(parseError.message)
+          const data = await api('POST', '/films', {
+            clipIds,
+            targetSec,
+            prompt: prompt.trim(),
+            aspectRatio: aspect,
+            resolution,
+          })
+          setNotice(data.notice || '成片已创建')
+          onCreated?.(data.batch)
+        } catch (filmError) {
+          setError(filmError.message)
         } finally {
-          setParsing(false)
+          setBusy('')
         }
       }
 
-      const confirm = async () => {
-        if (!plan) return
-        setCreating(true)
+      const toggle = (id) => {
+        setPicked((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id])
+      }
+
+      const remove = async (id) => {
+        await api('DELETE', `/clips/${encodeURIComponent(id)}`)
+        setClips((current) => current.filter((clip) => clip.id !== id))
+        setPicked((current) => current.filter((item) => item !== id))
+        setPreview((current) => current && current.id === id ? null : current)
+      }
+
+      const retry = async (clip) => {
+        setBusy(`retry:${clip.id}`)
         setError('')
         try {
-          if (dirList.length > 0) await api('POST', '/materials/scan', { dirs: dirList })
-          const result = await api('POST', '/batches', {
-            title: plan.config.topic || '新批次',
-            count: plan.count,
-            config: { ...plan.config, materialMode: 'pool' },
-          })
-          const warnings = result.preflight?.warnings || []
-          setNotice({
-            tone: warnings.length > 0 ? 'warning' : 'success',
-            text: warnings.length > 0
-              ? `已创建 ${result.batch.id}，注意：${warnings.join('；')}`
-              : `已创建 ${result.batch.id}`,
-          })
-          setPlan(null)
-          setBrief('')
-          onCreated?.(result.batch)
-        } catch (createError) {
-          setError(createError.message)
+          const data = await api('POST', `/clips/${encodeURIComponent(clip.id)}/retry`)
+          setClips((current) => current.map((item) => item.id === clip.id ? data.clip : item))
+        } catch (retryError) {
+          setError(retryError.message)
         } finally {
-          setCreating(false)
+          setBusy('')
         }
       }
 
-      const fact = (label, value) => h('span', { className: 'cs-plan-fact' },
-        h('span', null, label),
-        h('strong', null, String(value)),
-      )
+      const ratio = aspect === '16:9' ? ' is-wide' : aspect === '1:1' ? ' is-square' : ''
+      const shotClass = `cs-shot${ratio}`
 
-      return h('div', { className: 'cs-stack' },
-        h('section', { className: 'cs-card cs-composer' },
-          h('textarea', {
-            className: 'cs-prompt-input',
-            rows: 3,
-            placeholder: '描述你想生产什么，例如：做 5 条秋日通勤穿搭，发抖音，每天 18:00 一条，预算 20 元',
-            value: brief,
-            onChange: (event) => setBrief(event.target.value),
-          }),
-          h('div', { className: 'cs-composer-meta' },
-            h('input', {
-              className: 'cs-input',
-              placeholder: '素材目录（可稍后在高级设置里填）',
-              value: dirs,
-              onChange: (event) => setDirs(event.target.value),
+      return h('div', { className: 'cs-studio' },
+        h('div', { className: 'cs-well' },
+          clips.length === 0
+            ? h('div', { className: `cs-gates${ratio}` },
+                [0, 1, 2, 3].map((index) => h('div', { key: index, className: `cs-gate${ratio}`, 'aria-hidden': true })),
+                h('p', { className: 'cs-well-copy' }, '还没有镜头。写下面的提示词，生成后排在这里。'),
+              )
+            : h('div', { className: 'cs-gallery' },
+                clips.map((clip) => h('div', {
+                  key: clip.id,
+                  className: `${shotClass}${picked.includes(clip.id) ? ' is-on' : ''}`,
+                  onClick: clip.status === 'succeeded' ? () => toggle(clip.id) : undefined,
+                  onMouseEnter: (event) => { event.currentTarget.querySelector('video')?.play().catch(() => {}) },
+                  onMouseLeave: (event) => { event.currentTarget.querySelector('video')?.pause() },
+                },
+                  clip.status === 'succeeded' && clip.url
+                    ? h('video', { src: clip.url, muted: true, loop: true, playsInline: true, preload: 'metadata' })
+                    : h('div', { className: 'cs-shot-ph', title: clip.error || '' },
+                        clip.status === 'running' ? '生成中…' : (clip.prompt || '失败')),
+                  h('button', {
+                    className: 'cs-shot-x', type: 'button', 'aria-label': '删除镜头',
+                    disabled: busy !== '',
+                    onClick: (event) => { event.stopPropagation(); remove(clip.id).catch((err) => setError(err.message)) },
+                  }, '×'),
+                  clip.status === 'succeeded' ? h('span', { className: 'cs-shot-time' }, `${clip.durationSec || 5}秒`) : null,
+                  clip.status === 'succeeded'
+                    ? h('input', {
+                        className: 'cs-shot-check', type: 'checkbox',
+                        checked: picked.includes(clip.id),
+                        onChange: (event) => { event.stopPropagation(); toggle(clip.id) },
+                        onClick: (event) => event.stopPropagation(),
+                        'aria-label': '勾选进成片',
+                      })
+                    : null,
+                  h('div', { className: 'cs-shot-act' },
+                    clip.status === 'succeeded'
+                      ? [
+                          h('button', {
+                            key: 'preview', className: 'cs-btn cs-btn-sm',
+                            onClick: (event) => { event.stopPropagation(); setPlaying(true); setPreview(clip) },
+                          }, '预览'),
+                          h('button', {
+                            key: 'film', className: 'cs-btn cs-btn-sm',
+                            disabled: busy !== '',
+                            onClick: (event) => { event.stopPropagation(); film([clip.id]) },
+                          }, '成片'),
+                        ]
+                      : clip.status === 'failed'
+                        ? [
+                            h('button', {
+                              key: 'retry', className: 'cs-btn cs-btn-sm',
+                              disabled: busy !== '',
+                              onClick: (event) => { event.stopPropagation(); retry(clip) },
+                            }, '重试'),
+                            h('button', {
+                              key: 'edit', className: 'cs-btn cs-btn-sm',
+                              onClick: (event) => { event.stopPropagation(); setPrompt(clip.prompt || '') },
+                            }, '改'),
+                          ]
+                        : null,
+                  ),
+                )),
+              ),
+        ),
+        preview
+          ? h('div', { className: 'cs-preview', onClick: () => { setPreview(null); setPlaying(false) } },
+              h('div', { className: 'cs-preview-box', onClick: (event) => event.stopPropagation() },
+                h('video', {
+                  src: preview.url, controls: true, autoPlay: true, playsInline: true,
+                  onPlay: () => setPlaying(true),
+                  onPause: () => setPlaying(false),
+                  onEnded: () => setPlaying(false),
+                }),
+                h('p', { className: 'cs-preview-cap' }, `${preview.durationSec || 5}秒 · ${preview.prompt || ''}`),
+                h('div', { className: 'cs-preview-bar' },
+                  h('button', {
+                    className: 'cs-btn cs-btn-outline',
+                    onClick: (event) => {
+                      const video = event.currentTarget.closest('.cs-preview-box')?.querySelector('video')
+                      if (!video) return
+                      if (video.paused) video.play()
+                      else video.pause()
+                    },
+                  }, playing ? '暂停' : '播放'),
+                  h('button', { className: 'cs-btn cs-btn-outline', onClick: () => { setPreview(null); setPlaying(false) } }, '关闭'),
+                ),
+              ))
+          : null,
+        h('section', { className: 'cs-dock' },
+          h('div', { className: 'cs-dock-row' },
+            h(Seg, { label: '画幅', value: aspect, onChange: setAspect, options: [['9:16', '9:16'], ['16:9', '16:9'], ['1:1', '1:1']] }),
+            h(Seg, { label: '清晰度', value: resolution, onChange: setResolution, options: [['480P', '480P'], ['1080P', '1080P']] }),
+            h(Seg, {
+              label: '时长',
+              value: customDur || !CLIP_PRESETS.includes(targetSec) ? 'custom' : targetSec,
+              onChange: (id) => {
+                if (id === 'custom') {
+                  setCustomDur(true)
+                  return
+                }
+                setCustomDur(false)
+                setTargetSec(id)
+              },
+              options: [[15, '15秒'], [30, '30秒'], [60, '1分钟'], [90, '1分半'], ['custom', '自定义']],
             }),
+            customDur || !CLIP_PRESETS.includes(targetSec)
+              ? h('label', { className: 'cs-dur' },
+                  h('input', {
+                    className: 'cs-dur-input', type: 'number', min: 5, max: CLIP_MAX_SEC, step: 5,
+                    value: targetSec,
+                    onChange: (event) => {
+                      const n = Math.round(Number(event.target.value))
+                      setTargetSec(Number.isFinite(n) ? Math.min(CLIP_MAX_SEC, Math.max(5, n)) : 5)
+                    },
+                  }),
+                  `秒，最长 ${CLIP_MAX_SEC}`,
+                )
+              : null,
             h('button', {
-              className: 'cs-btn cs-btn-ghost cs-btn-sm',
-              disabled: !onPickDirectory,
-              onClick: () => onPickDirectory?.((picked) => {
-                setDirs((current) => current.trim() ? `${current.trim()}\n${picked}` : picked)
-              }),
-            }, '选择目录'),
-            h('button', {
-              className: 'cs-btn cs-btn-outline cs-btn-sm',
-              disabled: dirList.length === 0 || busy === 'scan',
-              onClick: scan,
-            }, busy === 'scan' ? '扫描中…' : '扫描素材'),
-            scanned ? h('span', { className: 'cs-hint' }, `已索引 ${scanned.total} 个素材`) : null,
+              className: 'cs-btn cs-btn-outline',
+              disabled: busy !== '' || picked.length === 0,
+              onClick: () => film(picked),
+            }, busy === 'film' ? '拼接中…' : picked.length ? `开始成片 ${picked.length}` : '开始成片'),
           ),
-          h('div', { className: 'cs-composer-bar' },
-            h('button', {
-              className: 'cs-btn cs-btn-primary',
-              disabled: parsing,
-              onClick: parse,
-            }, parsing ? 'AI 正在拆解…' : '让 AI 拆解'),
-            h('button', {
-              className: 'cs-btn cs-btn-ghost',
-              disabled: !brief.trim(),
-              onClick: () => onAdjust?.({
-                topic: brief.trim(),
-                dirs,
-                materialMode: 'pool',
-              }),
-            }, '高级设置'),
-            h('span', { className: 'cs-hint' }, '描述主题、条数、平台、发布时间、预算；没说到的会用默认值。'),
+          refs.length
+            ? h('div', { className: 'cs-refs' },
+                refs.map((item, index) => h('div', { key: `${item.name}-${index}`, className: 'cs-ref' },
+                  h('img', { src: item.url, alt: item.name }),
+                  h('button', {
+                    className: 'cs-ref-x', type: 'button', 'aria-label': '移除参考图',
+                    onClick: () => setRefs((current) => current.filter((_, itemIndex) => itemIndex !== index)),
+                  }, '×'),
+                )))
+            : null,
+          h('div', { className: 'cs-prompt' },
+            h('textarea', {
+              className: 'cs-prompt-input',
+              rows: 3,
+              placeholder: '描述要生成的镜头。例如：秋日通勤，侧逆光，中景跟拍，不要字幕',
+              value: prompt,
+              onChange: (event) => setPrompt(event.target.value),
+            }),
+            h('div', { className: 'cs-prompt-bar' },
+              h('label', { className: 'cs-btn cs-btn-ghost' },
+                '参考图',
+                h('input', {
+                  className: 'cs-file', type: 'file', accept: 'image/*', multiple: true,
+                  onChange: (event) => {
+                    addRefs(event.target.files || [])
+                    event.target.value = ''
+                  },
+                }),
+              ),
+              h('span', { className: 'cs-hint' }, `每条 ${targetSec} 秒，最长 ${CLIP_MAX_SEC}`),
+              readiness,
+              h('button', {
+                className: 'cs-go',
+                disabled: busy === 'gen',
+                onClick: generate,
+              }, busy === 'gen' ? '提交中…' : '生成'),
+            ),
           ),
           error
             ? h('div', { className: 'cs-alert cs-alert-danger', role: 'alert' },
-                h(AlertIcon),
-                h('div', { className: 'cs-alert-body' },
-                  h('p', { className: 'cs-alert-text' }, error),
-                ),
-              )
+                h('div', { className: 'cs-alert-body' }, h('p', { className: 'cs-alert-text' }, error)))
             : null,
           notice
-            ? h('div', {
-                className: `cs-alert ${notice.tone === 'warning' ? 'cs-alert-warning' : 'cs-alert-success'}`,
-                role: 'status',
-              },
-                h(AlertIcon),
-                h('div', { className: 'cs-alert-body' },
-                  h('p', { className: 'cs-alert-text' }, notice.text),
-                ),
-              )
+            ? h('div', { className: 'cs-alert cs-alert-success', role: 'status' },
+                h('div', { className: 'cs-alert-body' }, h('p', { className: 'cs-alert-text' }, notice)))
             : null,
         ),
-        plan
-          ? h('div', { className: 'cs-thread' },
-              h('div', { className: 'cs-chat-user' }, brief),
-              h('div', { className: 'cs-chat-ai' },
-                h('div', { className: 'cs-chat-avatar' }, 'AI'),
-                h('div', { className: 'cs-chat-body' },
-                  h('div', { className: 'cs-row-main' },
-                    h('span', { className: 'cs-card-title' }, '生产计划'),
-                    h(Badge, { tone: 'info' }, plan.source === 'llm' ? 'AI 解析' : '本地解析'),
-                  ),
-                  h('p', { className: 'cs-muted' }, plan.plan.summary),
-                  h('div', { className: 'cs-plan-facts' },
-                    fact('平台', platformLabel(platforms, plan.config.platform)),
-                    fact('条数', plan.count),
-                    fact('时长', `${plan.config.targetSec}s`),
-                    fact('审核', plan.config.reviewMode === 'auto' ? '自动放行' : '需人工审核'),
-                    plan.config.publishStartAt
-                      ? fact('发布时间', new Date(plan.config.publishStartAt).toLocaleString('zh-CN'))
-                      : null,
-                    fact('成本上限', plan.config.costCap ? `¥${plan.config.costCap}` : '不设'),
-                  ),
-                  plan.plan.assumptions?.length
-                    ? h('ul', { className: 'cs-hint', style: { margin: 0, paddingLeft: 18 } },
-                        plan.plan.assumptions.map((assumption, index) => h('li', { key: index }, assumption)))
-                    : null,
-                  plan.plan.warnings?.length
-                    ? h('div', { className: 'cs-hint', style: { color: 'var(--cs-warn)' } }, plan.plan.warnings.join('；'))
-                    : null,
-                  h('div', { className: 'cs-actions' },
-                    h('button', {
-                      className: 'cs-btn cs-btn-primary cs-btn-sm',
-                      disabled: creating,
-                      onClick: confirm,
-                    }, creating ? '创建中…' : '确认创建'),
-                    h('button', {
-                      className: 'cs-btn cs-btn-outline cs-btn-sm',
-                      onClick: () => onAdjust?.({ ...plan.config, count: plan.count, dirs }),
-                    }, '调整参数'),
-                    h('button', {
-                      className: 'cs-btn cs-btn-ghost cs-btn-sm',
-                      onClick: () => setPlan(null),
-                    }, '重新描述'),
-                  ),
-                ),
-              ),
-            )
-          : null,
       )
     }
 
@@ -1719,6 +2143,7 @@ window.__ModuleLoader__.load({
     /* 工作台                                                            */
     /* ------------------------------------------------------------------ */
     function Workbench({ services }) {
+      ensureStyles()
       const [tab, setTab] = useState('console')
       const [batches, setBatches] = useState([])
       const [selected, setSelected] = useState(null)
@@ -1772,134 +2197,67 @@ window.__ModuleLoader__.load({
       }
 
       const itemStatuses = batches.flatMap((batch) => (batch.items || []).map((item) => item.status))
+      const reviewable = batches.flatMap((batch) => (batch.items || [])
+        .filter((item) => item.status === 'review_pending' || item.status === 'rejected')
+        .map((item) => item.id))
       const summary = [
         ['运行中', itemStatuses.filter((status) => status === 'running').length],
         ['待审核', itemStatuses.filter((status) => status === 'review_pending').length],
+        ['已驳回', itemStatuses.filter((status) => status === 'rejected').length],
         ['失败', itemStatuses.filter((status) => status === 'failed').length],
-        ['待发布', itemStatuses.filter((status) => status === 'approved').length],
+        ['待分发', itemStatuses.filter((status) => status === 'approved').length],
       ]
+
+      const openReview = (itemId, queue) => {
+        const ids = Array.isArray(queue) && queue.length > 0 ? queue : (itemId ? [itemId] : reviewable)
+        if (ids.length) {
+          setReviewQueue(ids)
+          setReviewIndex(itemId ? Math.max(0, ids.indexOf(itemId)) : 0)
+        }
+        if (!selected && batches[0]) setSelected(batches[0].id)
+        setTab('review')
+      }
 
       return h('div', { className: 'cs-page' },
         h('div', { className: 'cs-page-inner' },
-        h('header', { className: 'cs-header' },
-          h('div', null,
-            h('h1', { className: 'cs-title' }, '内容生产 · 总控台'),
-            h('p', { className: 'cs-subtitle' }, '批量生产：文案 → 配音 → 字幕 → 画面 → 渲染 → 封面 → 校验 → 审核/导出'),
+        h('div', { className: 'cs-chrome' },
+          h('h1', { className: 'cs-title' }, ({ console: '生成', review: '审核', ready: '待分发', settings: '设置' })[tab]),
+          h('nav', { className: 'cs-tabs' },
+            [['console', '生成'], ['review', '审核'], ['ready', '待分发'], ['settings', '设置']].map(([key, label]) =>
+              h('button', {
+                key,
+                className: `cs-tab${tab === key ? ' is-active' : ''}`,
+                'aria-current': tab === key ? 'page' : undefined,
+                onClick: () => (key === 'review' ? openReview() : setTab(key)),
+              }, key === 'review' && reviewable.length ? `${label} ${reviewable.length}` : label)),
           ),
-          h('div', { className: 'cs-header-actions' },
-            h('button', { className: 'cs-btn cs-btn-ghost', onClick: load }, '刷新'),
-          ),
+          h('button', { className: 'cs-btn cs-btn-ghost', style: { marginLeft: 'auto' }, onClick: load }, '刷新'),
         ),
         error
-          ? h('div', { className: 'cs-alert cs-alert-danger', role: 'alert' },
+          ? h('div', { className: 'cs-alert cs-alert-danger', role: 'alert', style: { margin: '0 28px 8px' } },
               h(AlertIcon),
               h('div', { className: 'cs-alert-body' },
                 h('p', { className: 'cs-alert-text' }, `接口不可用：${error}`),
               ),
             )
           : null,
-        h(Readiness, {
-          health,
-          onConfigure: () => setTab('settings'),
-          onInstallFfmpeg: installFfmpeg,
-          installing,
-          installError,
-        }),
-        h('nav', { className: 'cs-tabs' },
-          [['console', '总控台'], ['review', '审核'], ['ready', '待发布'], ['settings', '设置']].map(([key, label]) =>
-            h('button', {
-              key,
-              className: `cs-tab${tab === key ? ' is-active' : ''}`,
-              'aria-current': tab === key ? 'page' : undefined,
-              onClick: () => setTab(key),
-            }, label)),
-        ),
-
+        h('div', { className: `cs-body${tab === 'console' ? '' : ' is-scroll'}` },
         tab === 'console'
-          ? h('div', { className: 'cs-stack' },
-              h(CreateComposer, {
-                key: composerKey,
-                platforms,
-                services,
-                onPickDirectory: (onPick) => setPicker({ onPick }),
-                onCreated: (batch) => {
-                  setSelected(batch.id)
-                  load()
-                },
-                onAdjust: (initial) => {
-                  setAdvancedInitial(initial)
-                  setShowAdvanced(true)
-                },
+          ? h(CreateComposer, {
+              key: composerKey,
+              readiness: h(Readiness, {
+                health,
+                onConfigure: () => setTab('settings'),
+                onInstallFfmpeg: installFfmpeg,
+                installing,
+                installError,
               }),
-              showAdvanced
-                ? h('section', { className: 'cs-card' },
-                    h('div', { className: 'cs-card-head' },
-                      h('h2', { className: 'cs-card-title' }, '高级设置'),
-                      h('button', {
-                        className: 'cs-btn cs-btn-ghost cs-btn-sm',
-                        onClick: () => setShowAdvanced(false),
-                      }, '收起'),
-                    ),
-                    h(NewBatchForm, {
-                      key: `advanced-${composerKey}-${advancedInitial?.topic || ''}`,
-                      initial: advancedInitial,
-                      groups,
-                      health,
-                      services,
-                      platforms,
-                      onPickDirectory: (onPick) => setPicker({ onPick }),
-                      onCreated: (batch) => {
-                        setSelected(batch.id)
-                        setShowAdvanced(false)
-                        setComposerKey((key) => key + 1)
-                        load()
-                      },
-                    }),
-                  )
-                : null,
-              h('section', { className: 'cs-card' },
-                h('div', { className: 'cs-card-head' },
-                  h('h2', { className: 'cs-card-title' }, '批次'),
-                  h('div', { className: 'cs-card-actions' },
-                    summary.map(([label, value]) => h('span', { key: label, className: 'cs-stat-inline' },
-                      label, h('strong', null, String(value)))),
-                  ),
-                ),
-                batches.length === 0
-                  ? h('div', { className: 'cs-empty' }, '还没有批次。上面描述一句，或者点「高级设置」手动创建。')
-                  : h('div', { className: 'cs-list' },
-                      batches.map((batch) => {
-                        const failed = (batch.items || []).filter((item) => item.status === 'failed').length
-                        return h('button', {
-                          key: batch.id,
-                          className: `cs-batch-row${selected === batch.id ? ' is-selected' : ''}`,
-                          onClick: () => setSelected(batch.id),
-                        },
-                          h('div', { className: 'cs-row-main' },
-                            h('span', { className: 'cs-dot', style: { opacity: batch.status === 'cancelled' ? 0.3 : 1 } }),
-                            h('span', { className: 'cs-row-title' }, batch.title),
-                            h(Badge, { tone: BATCH_STATUS_TONE[batch.status] || '' }, BATCH_STATUS_ZH[batch.status] || batch.status),
-                            h('span', { className: 'cs-row-meta' }, platformLabel(platforms, batch.config?.platform)),
-                            failed > 0 ? h(Badge, { tone: 'bad' }, `失败 ${failed}`) : null,
-                          ),
-                          h('span', { className: 'cs-row-meta' }, `${batch.items.length} 条 · ${new Date(batch.createdAt).toLocaleString('zh-CN')}`),
-                        )
-                      }),
-                    ),
-              ),
-              selected ? h(BatchDetail, {
-                batchId: selected,
-                refreshKey: tick,
-                platforms,
-                onOpenReview: (itemId, queue) => {
-                  const ids = Array.isArray(queue) && queue.length > 0 ? queue : [itemId]
-                  setReviewQueue(ids)
-                  setReviewIndex(Math.max(0, ids.indexOf(itemId)))
-                  setTab('review')
-                },
-                onDeleted: () => { setSelected(null); setTick((n) => n + 1) },
-              }) : null,
-            )
+              onCreated: (batch) => {
+                setSelected(batch.id)
+                setTab('review')
+                load()
+              },
+            })
           : null,
 
         tab === 'review'
@@ -1917,23 +2275,64 @@ window.__ModuleLoader__.load({
                       if (reviewIndex < reviewQueue.length - 1) setReviewIndex((i) => i + 1)
                     },
                   })
-                : h('div', { className: 'cs-card' },
-                    h('div', { className: 'cs-empty' }, '从总控台的批次详情点「去审核」选择一条内容。')),
-              h('div', { className: 'cs-actions' },
-                reviewQueue.length > 0
-                  ? h('button', {
+                : h('p', { className: 'cs-empty' }, batches.length
+                  ? '点下面一条成片，打开待审内容。'
+                  : '还没有成片。去生成页做出镜头，再点成片。'),
+              reviewQueue.length > 0
+                ? h('div', { className: 'cs-actions' },
+                    h('button', {
                       className: 'cs-btn cs-btn-ghost cs-btn-sm',
                       onClick: () => { setReviewQueue([]); setReviewIndex(0) },
-                    }, '关闭审核')
-                  : null,
-                h('span', { className: 'cs-hint' }, '快捷键：A 通过 · R 驳回 · ← → 翻页'),
-              ),
+                    }, '收起预览'),
+                    h('span', { className: 'cs-hint' }, '快捷键：A 通过 · R 驳回并重做 · ← → 翻页'),
+                  )
+                : null,
+              batches.length > 0
+                ? h('section', { className: 'cs-films' },
+                    h('div', { className: 'cs-card-head' },
+                      h('h2', { className: 'cs-card-title' }, '成片'),
+                      h('div', { className: 'cs-card-actions' },
+                        summary.map(([label, value]) => h('span', { key: label, className: 'cs-stat-inline' },
+                          label, h('strong', null, String(value)))),
+                      ),
+                    ),
+                    h('div', { className: 'cs-list' },
+                      batches.map((batch) => {
+                        const failed = (batch.items || []).filter((item) => item.status === 'failed').length
+                        const passed = (batch.items || []).some((item) => item.status === 'approved')
+                        const mark = failed > 0 ? ['告警', 'is-bad'] : passed ? ['待分发', 'is-ok'] : ['进行中', 'is-wait']
+                        return h('button', {
+                          key: batch.id,
+                          className: `cs-batch-row${selected === batch.id ? ' is-selected' : ''}`,
+                          onClick: () => setSelected(batch.id),
+                        },
+                          h('div', { className: 'cs-row-main' },
+                            h('span', { className: 'cs-dot', style: { opacity: batch.status === 'cancelled' ? 0.3 : 1 } }),
+                            h('span', { className: 'cs-row-title' }, batch.title),
+                            h(Badge, { tone: BATCH_STATUS_TONE[batch.status] || '' }, BATCH_STATUS_ZH[batch.status] || batch.status),
+                            h('span', { className: 'cs-row-meta' }, platformLabel(platforms, batch.config?.platform)),
+                          ),
+                          h('span', { className: `cs-log-mark ${mark[1]}` }, mark[0]),
+                          h('span', { className: 'cs-row-meta' }, `${batch.items.length} 条 · ${new Date(batch.createdAt).toLocaleString('zh-CN')}`),
+                        )
+                      }),
+                    ),
+                  )
+                : null,
+              selected ? h(BatchDetail, {
+                batchId: selected,
+                refreshKey: tick,
+                platforms,
+                onOpenReview: openReview,
+                onDeleted: () => { setSelected(null); setTick((n) => n + 1) },
+              }) : null,
             )
           : null,
 
         tab === 'ready' ? h(ReadyPage, { refreshKey: tick, platforms, onError: setError }) : null,
 
         tab === 'settings' ? h(SettingsPage, { platforms }) : null,
+        ),
 
         picker
           ? h(DirectoryPicker, {

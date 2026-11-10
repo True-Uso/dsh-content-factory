@@ -1,6 +1,7 @@
 import { createReadStream } from 'node:fs'
 import { readFile, stat, writeFile } from 'node:fs/promises'
 import { extname, join, normalize, resolve, sep } from 'node:path'
+import { assembleFilm, clipFile, clipsRoot, generateClip, getClip, listClips, newClipId, normalizeClipSec, publicClip, removeClip, upsertClip } from './clips.js'
 import {
   ITEM_STATUS,
   STEP_ORDER,
@@ -14,7 +15,7 @@ import {
   writeJson,
 } from './batch-store.js'
 import { checkCapabilities, resolveTools } from './ffmpeg.js'
-import { PROVIDER_KINDS, createProvider, resolveRoleProviders, roleOf } from './providers.js'
+import { PROVIDER_KINDS, createProvider, listUpstreamModels, resolveRoleProviders, roleOf } from './providers.js'
 import { dataDir, loadProviders, providersFile, removeProvider, upsertProvider } from './store.js'
 import { computeCost, sumUsage } from './cost.js'
 import { preflight } from './preflight.js'
@@ -23,6 +24,7 @@ import { listPlatforms, normalizeBatchConfig } from './platforms.js'
 import { parseBrief } from './brief.js'
 import { installFfmpeg } from './install-tools.js'
 import { batchExportName, buildBatchZip, buildItemZip, itemExportName } from './export.js'
+import { distributeItem, listChannels, loadPostiz, publicPostiz, savePostiz } from './postiz.js'
 
 const MASK = '__stored__'
 const MAX_BODY = 1024 * 1024
@@ -94,13 +96,19 @@ export function createApi({ runner, prefix = '/content-studio/api', allowedOrigi
         steps: STEP_ORDER,
         reviewReasons: REVIEW_REASONS,
         platforms: listPlatforms(),
+        specs: {
+          aspects: ['9:16', '16:9', '1:1'],
+          resolutions: ['480P', '1080P'],
+          clipSec: 5,
+          filmSec: [15, 30],
+        },
         reviewModes: [
           { id: 'required', label: '需人工审核' },
           { id: 'auto', label: '自动放行' },
         ],
         dataDir: dataDir(),
         providersFile: providersFile(),
-        note: 'ark-seedance 已预留，需要方舟控制台的模型 ID 才能启用',
+        note: '视频默认百炼 wan2.2-t2v-plus（5 秒，480P/1080P）',
       })
     }
 
@@ -121,16 +129,38 @@ export function createApi({ runner, prefix = '/content-studio/api', allowedOrigi
       return sendJson(res, result.ok ? 200 : 500, result)
     }
 
+    /* ---------------- postiz ---------------- */
+    if (method === 'GET' && path === '/postiz') {
+      return sendJson(res, 200, publicPostiz(await loadPostiz()))
+    }
+    if (method === 'POST' && path === '/postiz') {
+      const body = await readJson(req)
+      const saved = await savePostiz(body)
+      return sendJson(res, 200, publicPostiz(saved))
+    }
+    if (method === 'GET' && path === '/postiz/channels') {
+      try {
+        return sendJson(res, 200, { channels: await listChannels(await loadPostiz()) })
+      } catch (error) {
+        return sendJson(res, error.status || 502, { error: messageOf(error), channels: [] })
+      }
+    }
+
     /* ---------------- providers ---------------- */
     if (method === 'GET' && path === '/providers') {
       const providers = await loadProviders()
       return sendJson(res, 200, { providers: providers.map(maskProvider) })
     }
 
+    if (method === 'POST' && (path === '/probe' || path === '/providers/probe')) {
+      return probeFromBody(req, res)
+    }
+
     const providerMatch = /^\/providers\/([^/]+)(\/health|\/test)?$/.exec(path)
     if (providerMatch) {
       const id = decodeURIComponent(providerMatch[1])
       const action = providerMatch[2]
+      if (id === 'probe' && method === 'POST' && !action) return probeFromBody(req, res)
 
       if (method === 'PUT' && !action) {
         if (!/^[A-Za-z0-9._-]{1,64}$/.test(id)) return sendJson(res, 400, { error: 'id 只能包含字母、数字、点、下划线、短横线（≤64）' })
@@ -342,7 +372,7 @@ export function createApi({ runner, prefix = '/content-studio/api', allowedOrigi
     }
 
     /* ---------------- items ---------------- */
-    const itemMatch = /^\/items\/([^/]+)(?:\/(rerun|approve|reject|retry|script|unapprove|log|export))?$/.exec(path)
+    const itemMatch = /^\/items\/([^/]+)(?:\/(rerun|approve|reject|retry|script|unapprove|log|export|distribute))?$/.exec(path)
     if (itemMatch) {
       const itemId = decodeURIComponent(itemMatch[1])
       const action = itemMatch[2]
@@ -396,21 +426,37 @@ export function createApi({ runner, prefix = '/content-studio/api', allowedOrigi
         }
         const body = await readJson(req)
         if (!body.reason) return sendJson(res, 400, { error: '驳回需要原因' })
+        const previousScript = await readJsonSafe(join(item.dir, '01-script', 'script.json'))
         const review = {
           decision: 'rejected',
           reason: body.reason,
           note: body.note || '',
           decidedAt: Date.now(),
+          previous: previousScript
+            ? {
+                title: previousScript.title || '',
+                narration: (previousScript.narration || []).map((line) => line.text).filter(Boolean),
+                shots: (previousScript.shotList || []).map((shot) => shot.intent).filter(Boolean),
+              }
+            : null,
         }
         await writeJson(join(item.dir, '09-review', 'review.json'), review)
-        await updateItem(batchId, item.id, () => ({ status: ITEM_STATUS.rejected }))
-        await runner?.refreshBatchStatus(batchId)
-        return sendJson(res, 200, { itemId: item.id, status: ITEM_STATUS.rejected })
+        await resetStepsFrom(batchId, item.id, 'script')
+        if (runner) {
+          runner.enqueue(batchId, [item.id])
+          await updateBatch(batchId, () => ({ status: 'running' }))
+        }
+        return sendJson(res, 200, { itemId: item.id, status: ITEM_STATUS.pending, revising: true })
       }
 
       if (method === 'POST' && action === 'retry') {
         if (item.status === ITEM_STATUS.approved) return sendJson(res, 409, { error: '已通过的条目不能重新入队，请先撤回' })
-        await updateItem(batchId, item.id, () => ({ status: ITEM_STATUS.pending, error: null }))
+        const review = await readJsonSafe(join(item.dir, '09-review', 'review.json'))
+        if (review?.decision === 'rejected') {
+          await resetStepsFrom(batchId, item.id, 'script')
+        } else {
+          await updateItem(batchId, item.id, () => ({ status: ITEM_STATUS.pending, error: null }))
+        }
         runner?.enqueue(batchId, [item.id])
         return sendJson(res, 200, { itemId: item.id, enqueued: Boolean(runner) })
       }
@@ -465,6 +511,112 @@ export function createApi({ runner, prefix = '/content-studio/api', allowedOrigi
         const zip = await buildItemZip(item, parent?.config || {})
         return sendZip(res, zip, itemExportName(item))
       }
+
+      if (method === 'POST' && action === 'distribute') {
+        if (item.status !== ITEM_STATUS.approved) {
+          return sendJson(res, 409, { error: `只有审核通过的条目能分发，当前是 ${item.status}` })
+        }
+        const body = await readJson(req)
+        const videoPath = join(item.dir, '06-render', 'master.mp4')
+        if (!(await fileSize(videoPath))) return sendJson(res, 409, { error: '成片还没生成，不能分发' })
+        const script = await readJsonSafe(join(item.dir, '01-script', 'script.json')) || {}
+        try {
+          const result = await distributeItem(await loadPostiz(), {
+            videoPath,
+            script,
+            integrationIds: body.integrationIds,
+          })
+          await writeJson(join(item.dir, '10-distribute', 'result.json'), result)
+          await updateItem(batchId, item.id, () => ({ distribute: { at: result.at, channels: result.channels } }))
+          return sendJson(res, 200, { itemId: item.id, distribute: result })
+        } catch (error) {
+          return sendJson(res, error.status || 502, { error: messageOf(error) })
+        }
+      }
+    }
+
+    /* ---------------- clips / films ---------------- */
+    if (method === 'GET' && path === '/clips') {
+      const clips = await listClips()
+      return sendJson(res, 200, { clips: clips.map((clip) => publicClip(clip, prefix)) })
+    }
+
+    if (method === 'POST' && path === '/clips') {
+      const body = await readJson(req)
+      const prompt = String(body.prompt || '').trim()
+      if (!prompt) return sendJson(res, 400, { error: '提示词不能为空' })
+      const roles = await resolveRoleProviders(await loadProviders())
+      if (!roles.video) return sendJson(res, 400, { error: '未配置视频模型。到设置里加百炼万相。' })
+      const aspectRatio = body.aspectRatio === '16:9' || body.aspectRatio === '1:1' ? body.aspectRatio : '9:16'
+      const resolution = body.resolution === '1080P' ? '1080P' : '480P'
+      const durationSec = normalizeClipSec(body.durationSec, 5)
+      const clip = await upsertClip({
+        id: newClipId(),
+        prompt,
+        status: 'running',
+        aspectRatio,
+        resolution,
+        durationSec,
+        imageUrl: /^https?:\/\//i.test(String(body.imageUrl || '')) ? String(body.imageUrl) : undefined,
+        createdAt: Date.now(),
+      })
+      void generateClip(clip, roles.video).then((next) => {
+        broadcast({ type: 'clip', clip: publicClip(next, prefix) })
+      })
+      return sendJson(res, 200, { clip: publicClip(clip, prefix) })
+    }
+
+    const clipMatch = /^\/clips\/([^/]+)(?:\/(file|retry))?$/.exec(path)
+    if (clipMatch) {
+      const id = decodeURIComponent(clipMatch[1])
+      const clip = await getClip(id)
+      if (!clip) return sendJson(res, 404, { error: `镜头不存在：${id}` })
+      if (method === 'DELETE' && !clipMatch[2]) {
+        await removeClip(id)
+        return sendJson(res, 200, { ok: true })
+      }
+      if (method === 'POST' && clipMatch[2] === 'retry') {
+        const roles = await resolveRoleProviders(await loadProviders())
+        if (!roles.video) return sendJson(res, 400, { error: '未配置视频模型。到设置里加百炼万相。' })
+        const next = await upsertClip({ id, status: 'running', error: null })
+        void generateClip(next, roles.video).then((updated) => {
+          broadcast({ type: 'clip', clip: publicClip(updated, prefix) })
+        })
+        return sendJson(res, 200, { clip: publicClip(next, prefix) })
+      }
+      if (method === 'GET' && clipMatch[2] === 'file') {
+        const target = resolve(clip.file || clipFile(id))
+        const root = resolve(clipsRoot())
+        if (!target.startsWith(root + sep)) return sendJson(res, 403, { error: '路径越界' })
+        return serveLocalFile(req, res, target)
+      }
+      if (method === 'GET' && !clipMatch[2]) {
+        return sendJson(res, 200, { clip: publicClip(clip, prefix) })
+      }
+    }
+
+    if (method === 'POST' && path === '/films') {
+      const body = await readJson(req)
+      const result = await assembleFilm({
+        clipIds: body.clipIds,
+        targetSec: body.targetSec,
+        prompt: body.prompt,
+        aspectRatio: body.aspectRatio,
+        resolution: body.resolution,
+      })
+      const roles = await resolveRoleProviders(await loadProviders())
+      const started = Boolean(runner && roles.llm && roles.tts)
+      if (started) await runner.startBatch(result.batch.id)
+      return sendJson(res, 200, {
+        batch: await loadBatch(result.batch.id),
+        started,
+        durationSec: result.durationSec,
+        clipIds: result.clipIds,
+        notice: [
+          started ? '已开始配音和封面' : '镜头已拼接。配置文案和配音模型后可继续成片。',
+          result.shortfall ? `画面只有 ${Math.round(result.visualSec)} 秒，成片按这个时长，不再循环同一镜。要 ${result.requested} 秒请先点生成出够长的镜头。` : '',
+        ].filter(Boolean).join(' '),
+      })
     }
 
     /* ---------------- media ---------------- */
@@ -510,7 +662,10 @@ export function createApi({ runner, prefix = '/content-studio/api', allowedOrigi
     const root = resolve(located.item.dir)
     const target = resolve(join(root, normalize(rest)))
     if (!target.startsWith(root + sep)) return sendJson(res, 403, { error: '路径越界' })
+    return serveLocalFile(req, res, target)
+  }
 
+  async function serveLocalFile(req, res, target) {
     let info
     try {
       info = await stat(target)
@@ -563,6 +718,38 @@ export function createApi({ runner, prefix = '/content-studio/api', allowedOrigi
   }
 
   return { handler, broadcast, stats: () => ({ streams: streams.size }) }
+}
+
+async function probeFromBody(req, res) {
+  const body = await readJson(req)
+  const existing = body.id ? (await loadProviders()).find((row) => row.id === body.id) : null
+  const cfg = { ...(existing || {}), ...body }
+  if (!cfg.apiKey || cfg.apiKey === MASK) cfg.apiKey = existing?.apiKey
+  delete cfg.want
+  delete cfg._existing
+  delete cfg.hasApiKey
+  if (cfg.kind === 'dashscope-wan' && !cfg.origin && cfg.baseUrl) cfg.origin = cfg.baseUrl
+  if (body.want === 'test') {
+    const job = await runProviderTest(cfg, body)
+    return sendJson(res, 200, { job, health: { ok: job.status === 'succeeded', detail: job.detail || job.error } })
+  }
+  if (body.want === 'models') {
+    try {
+      const models = await listUpstreamModels(cfg)
+      return sendJson(res, 200, {
+        models,
+        health: { ok: models.length > 0, detail: models.length ? `${models.length} 个模型` : '没有模型' },
+      })
+    } catch (error) {
+      return sendJson(res, 200, { models: [], health: { ok: false, detail: messageOf(error) } })
+    }
+  }
+  try {
+    const instance = await createProvider(cfg)
+    return sendJson(res, 200, { health: await instance.healthCheck(), models: [] })
+  } catch (error) {
+    return sendJson(res, 200, { health: { ok: false, detail: messageOf(error) }, models: [] })
+  }
 }
 
 async function runProviderTest(provider, body) {

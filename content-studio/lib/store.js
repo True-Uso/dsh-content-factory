@@ -10,7 +10,10 @@ import { join } from 'node:path'
  * pipeline lands; the shape below is already the shape that table stores.
  */
 export function dataDir() {
-  return process.env.CONTENT_STUDIO_HOME || join(homedir(), '.content-studio')
+  if (process.env.CONTENT_STUDIO_HOME) return process.env.CONTENT_STUDIO_HOME
+  // DSH 的 systemd 单元 ProtectHome=read-only，不能写 ~/.content-studio
+  if (process.env.DSH_HOME) return join(process.env.DSH_HOME, 'content-studio')
+  return join(homedir(), '.content-studio')
 }
 
 export function providersFile() {

@@ -223,6 +223,7 @@ export async function updateItem(batchId, itemId, mutate) {
             usage: item.usage ?? entry.usage,
             cost: item.cost ?? entry.cost,
             error: item.error,
+            distribute: item.distribute ?? entry.distribute,
             updatedAt: item.updatedAt,
           }
         : entry,
@@ -271,13 +272,18 @@ export async function markStep(batchId, itemId, step, patch) {
 export async function resetStepsFrom(batchId, itemId, fromStep) {
   const index = STEP_ORDER.indexOf(fromStep)
   if (index < 0) throw new Error(`未知步骤：${fromStep}`)
-  return updateItem(batchId, itemId, (current) => {
+  const result = await updateItem(batchId, itemId, (current) => {
     const steps = { ...(current.steps || {}) }
     for (const step of STEP_ORDER.slice(index)) {
       steps[step] = { status: 'pending', attempts: 0 }
     }
     return { steps, status: ITEM_STATUS.pending, error: null }
   })
+  // 产物留着的话，文案/配音步骤会直接读旧文件，重做等于没重做。
+  for (const step of STEP_ORDER.slice(index)) {
+    await rm(join(result.item.dir, STEP_DIR[step]), { recursive: true, force: true }).catch(() => {})
+  }
+  return result
 }
 
 export async function batchExists(batchId) {

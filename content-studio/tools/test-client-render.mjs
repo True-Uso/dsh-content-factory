@@ -85,13 +85,12 @@ try {
 }
 
 check('渲染出了非空 HTML', html.length > 200, `${html.length} chars`)
-check('有页面标题', html.includes('内容生产 · 总控台'))
-check('四个页签都在', ['总控台', '审核', '待发布', '设置'].every((label) => html.includes(label)))
-check('AI 创建入口在', html.includes('让 AI 拆解'))
-check('有任务描述输入', html.includes('描述你想生产什么'))
-check('有素材目录输入', html.includes('素材目录（可稍后在高级设置里填）'))
-check('有高级设置入口', html.includes('高级设置'))
-check('初始状态显示空批次列表', html.includes('还没有批次'))
+check('有页面标题', html.includes('生成'))
+check('四个页签都在', ['生成', '审核', '待分发', '设置'].every((label) => html.includes(label)))
+check('有提示词框', html.includes('描述要生成的镜头'))
+check('有生成按钮', html.includes('生成'))
+check('有成片入口', html.includes('开始成片'))
+check('初始状态显示空镜头墙', html.includes('还没有镜头'))
 check('没有渲染期异常标记', !html.includes('接口不可用'))
 
 const iconHtml = ReactDOMServer.renderToStaticMarkup(React.createElement(sideReg.component, { size: 18, active: true }))
@@ -112,9 +111,15 @@ const notReady = render(C.Readiness, {
   health: { ffmpeg: { ok: false, error: '找不到 ffmpeg/ffprobe' }, providers: [] },
   onConfigure: () => {},
 })
-check('就绪检查列出 ffmpeg 问题', notReady.includes('找不到 ffmpeg'))
-check('就绪检查列出缺失模型', notReady.includes('缺少') && notReady.includes('文案模型'))
-check('就绪检查给出跳转按钮', notReady.includes('去配置模型'))
+check('就绪检查列出 ffmpeg 问题', notReady.includes('ffmpeg 未就绪'))
+check('就绪检查列出缺失视频模型', notReady.includes('缺少视频模型'))
+check('就绪检查给出跳转按钮', notReady.includes('配置模型'))
+
+const videoOnlyMissing = render(C.Readiness, {
+  health: { ffmpeg: { ok: true }, providers: [] },
+  onConfigure: () => {},
+})
+check('健康检查返回后缺视频模型仍能渲染', videoOnlyMissing.includes('缺少视频模型') && videoOnlyMissing.includes('配置模型'))
 
 // 就绪时不应出现警告
 const ready = render(C.Readiness, {
@@ -167,11 +172,12 @@ check('有目录选择器时按钮可用', formWithPicker.includes('选择目录
 const formBad = render(C.NewBatchForm, { groups: [], health: { ffmpeg: { ok: false, error: 'ffmpeg 缺失' } }, platforms: PLATFORM_FIXTURE })
 check('ffmpeg 缺失时表单仍可渲染', formBad.includes('创建批次') && !formBad.includes('ffmpeg 缺失'))
 
-const composer = render(C.CreateComposer, { platforms: PLATFORM_FIXTURE, services: {}, onCreated: () => {}, onAdjust: () => {} })
-check('composer 有 AI 拆解入口', composer.includes('让 AI 拆解'))
-check('composer 有任务描述输入', composer.includes('描述你想生产什么'))
-check('composer 有高级设置入口', composer.includes('高级设置'))
-check('composer 有素材目录入口', composer.includes('选择目录') && composer.includes('扫描素材'))
+const composer = render(C.CreateComposer, { onCreated: () => {} })
+check('composer 有提示词框', composer.includes('描述要生成的镜头'))
+check('composer 有画幅选项', composer.includes('9:16') && composer.includes('16:9'))
+check('composer 有清晰度选项', composer.includes('480P') && composer.includes('1080P'))
+check('composer 有成片时长', composer.includes('15秒') && composer.includes('30秒') && composer.includes('1分钟') && composer.includes('自定义'))
+check('composer 有生成按钮', composer.includes('生成'))
 
 // 审核卡片：初始态不发请求，只验证能构建
 const reviewHtml = render(C.ReviewCard, { itemId: 'x-001', index: 0, total: 3 })
@@ -180,6 +186,10 @@ check('审核卡片初始态可渲染', reviewHtml.includes('读取中'))
 // 模型配置页初始态
 const providersHtml = render(C.ProvidersPage, {})
 check('模型配置页初始态可渲染', providersHtml.includes('读取中') || providersHtml.includes('文案模型'))
+check('模型配置不是 JSON 编辑器', !providersHtml.includes('整段 JSON'))
+const readyHtml = render(C.ReadyPage, {})
+check('待分发说明导出是 zip', readyHtml.includes('导出发布包是成片') || readyHtml.includes('Postiz'))
+check('待分发有分发入口', readyHtml.includes('分发'))
 
 /* ---------- 挂载状态：跑真实 effect + 假接口 ---------- */
 const TestRenderer = await import(pathToFileURL(join(REACT_DIR, 'react-test-renderer', 'index.js')).href)
@@ -214,11 +224,17 @@ globalThis.fetch = async (url) => {
       ? { platforms: PLATFORM_FIXTURE, reviewModes: [{ id: 'required', label: '需人工审核' }, { id: 'auto', label: '自动放行' }] }
       : path.includes('/materials/groups')
         ? { groups: [{ group: '通勤穿搭', count: 3 }], total: 3 }
-        : path.includes('/batches')
-          ? { batches: [BATCH_FIXTURE] }
-          : path.includes('/items/')
+        : path.includes('/clips')
+          ? { clips: [] }
+          : path.includes('/postiz')
+            ? { configured: false, apiUrl: 'https://api.postiz.com', hasApiKey: false, channels: [] }
+            : path.includes('/items/')
             ? ITEM_FIXTURE
-            : {}
+            : /\/batches\/[^/]+$/.test(path)
+              ? { batch: BATCH_FIXTURE }
+              : path.includes('/batches')
+                ? { batches: [BATCH_FIXTURE] }
+                : {}
   return { ok: true, status: 200, text: async () => JSON.stringify(body), json: async () => body }
 }
 
@@ -231,11 +247,21 @@ await act(async () => {
 })
 
 const mounted = JSON.stringify(tree.toJSON())
-check('挂载后拉到了批次列表', mounted.includes('夹具批次'), mounted.slice(0, 200))
-check('挂载后显示条目数', mounted.includes('2 条'))
-check('挂载后显示批次状态', mounted.includes('待审核'))
+check('生成页不塞成片列表', !mounted.includes('夹具批次'), mounted.slice(0, 200))
+check('生成页仍是镜头墙', mounted.includes('还没有镜头') && mounted.includes('开始成片'))
+check('审核页签带待审数量', mounted.includes('审核 1'))
 check('就绪后不再显示缺模型警告', !mounted.includes('还不能开始生产'))
-check('批次列表不再为空态', !mounted.includes('还没有批次'))
+
+const reviewTab = tree.root.findAll((node) => node.type === 'button' && String(node.props?.className || '').includes('cs-tab'))
+  .find((node) => String(node.children?.join?.('') || '').includes('审核'))
+check('找得到审核页签', Boolean(reviewTab))
+await act(async () => { reviewTab.props.onClick() })
+await act(async () => { await new Promise((resolve) => setTimeout(resolve, 30)) })
+const reviewPage = JSON.stringify(tree.toJSON())
+check('点审核后拉到了批次列表', reviewPage.includes('夹具批次'), reviewPage.slice(0, 200))
+check('审核页显示条目数', reviewPage.includes('2 条'))
+check('审核页直接打开待审卡片', reviewPage.includes('夹具内容一') && reviewPage.includes('驳回并重做'))
+check('审核页显示批次状态', reviewPage.includes('待审核'))
 
 // 打开审核：模拟点击「去审核」不可行（需要先选批次），改为直接挂 ReviewCard 加载
 let reviewTree
@@ -248,14 +274,41 @@ await act(async () => {
 const reviewMounted = JSON.stringify(reviewTree.toJSON())
 check('审核卡片加载出标题输入框', reviewMounted.includes('夹具内容一'))
 check('审核卡片有通过按钮', reviewMounted.includes('通过'))
-check('审核卡片有驳回按钮', reviewMounted.includes('驳回'))
+check('审核卡片有驳回按钮', reviewMounted.includes('驳回并重做'))
 check('审核卡片显示校验结论', reviewMounted.includes('18/18'))
 check('审核卡片显示视频播放器', reviewMounted.includes('video/mp4') || reviewMounted.includes('master.mp4'))
 check('审核卡片显示连翻计数', reviewMounted.includes('1 / 2'))
+check('审核封面是小图', reviewMounted.includes('封面 · 点击放大') && reviewMounted.includes('cs-cover-thumb'))
+check('审核封面未撑满', !reviewMounted.includes('cs-cover"') && reviewMounted.includes('cover-vertical.png'))
+
+const readyTab = tree.root.findAll((node) => node.type === 'button' && String(node.props?.className || '').includes('cs-tab'))
+  .find((node) => String(node.children?.join?.('') || '').includes('待分发'))
+check('找得到待分发页签', Boolean(readyTab))
+await act(async () => { readyTab.props.onClick() })
+await act(async () => { await new Promise((resolve) => setTimeout(resolve, 30)) })
+const readyPage = JSON.stringify(tree.toJSON())
+check('待分发页接 Postiz', readyPage.includes('Postiz') && readyPage.includes('API 密钥'))
+check('待分发列出已通过条目', readyPage.includes('夹具内容二'))
+check('待分发主按钮是分发', readyPage.includes('分发') && readyPage.includes('导出 zip'))
 
 await act(async () => {
   reviewTree.unmount()
   tree.unmount()
 })
+
+let providersTree
+await act(async () => {
+  providersTree = TestRenderer.create(React.createElement(C.ProvidersPage, {}))
+})
+await act(async () => {
+  await new Promise((resolve) => setTimeout(resolve, 30))
+})
+const addWan = providersTree.root.find((node) => node.type === 'button' && node.children.join('') === '＋ 百炼万相')
+await act(async () => { addWan.props.onClick() })
+const wanForm = JSON.stringify(providersTree.toJSON())
+check('万相表单有地址栏', wanForm.includes('https://dashscope.aliyuncs.com'))
+check('万相表单可测联通', wanForm.includes('测试联通'))
+check('万相表单可拉模型', wanForm.includes('获取模型'))
+await act(async () => { providersTree.unmount() })
 
 console.log(`\nALL CLIENT RENDER CHECKS PASSED (${passed})`)

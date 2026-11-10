@@ -1,5 +1,6 @@
 import { execFile } from 'node:child_process'
-import { existsSync } from 'node:fs'
+import { chmodSync, existsSync } from 'node:fs'
+import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { basename, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -93,6 +94,7 @@ export async function resolveTools(config = {}) {
     result.searched.push(candidate)
     if (candidate.includes('/') || candidate.includes('\\')) {
       if (!existsSync(candidate)) continue
+      try { chmodSync(candidate, 0o755) } catch { /* read-only tree */ }
     }
     if (await works(candidate)) {
       result.ffmpeg = candidate
@@ -102,6 +104,7 @@ export async function resolveTools(config = {}) {
   for (const candidate of candidates('ffprobe', config.ffprobePath, [ffprobeInstalled])) {
     if (candidate.includes('/') || candidate.includes('\\')) {
       if (!existsSync(candidate)) continue
+      try { chmodSync(candidate, 0o755) } catch { /* read-only tree */ }
     }
     if (await works(candidate)) {
       result.ffprobe = candidate
@@ -157,6 +160,57 @@ export async function probe(tools, file) {
     bitrate: Number(data.format?.bit_rate) || null,
     kind: video ? 'video' : audio ? 'audio' : 'other',
   }
+}
+
+/** Last frame as a data URL so万相 first_frame 能本地接龙，不必公网图床。 */
+export async function lastFrameDataUrl(tools, videoPath) {
+  if (!tools.ok) throw new Error(tools.error)
+  const out = `${videoPath}.last.jpg`
+  try {
+    await ffmpeg(tools, [
+      '-hide_banner', '-loglevel', 'error', '-y',
+      '-sseof', '-0.08', '-i', videoPath,
+      '-frames:v', '1', '-q:v', '3', out,
+    ], { timeout: 60000 })
+    const buf = await readFile(out)
+    if (buf.length < 32) throw new Error('最后一帧为空')
+    return `data:image/jpeg;base64,${buf.toString('base64')}`
+  } finally {
+    await unlink(out).catch(() => {})
+  }
+}
+
+/** Concat clips into one silent mp4. Same size first; re-encode if copy fails. */
+export async function concatVideos(tools, files, outPath, size = {}) {
+  if (!tools.ok) throw new Error(tools.error)
+  if (!Array.isArray(files) || files.length === 0) throw new Error('没有可拼接的镜头')
+  await mkdir(dirname(outPath), { recursive: true })
+  const width = Number(size.width) || 0
+  const height = Number(size.height) || 0
+  const parts = []
+  try {
+    for (let index = 0; index < files.length; index += 1) {
+      const part = `${outPath}.part${index}.mp4`
+      const vf = width > 0 && height > 0
+        ? `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1`
+        : 'setsar=1'
+      await ffmpeg(tools, [
+        '-hide_banner', '-loglevel', 'error', '-y', '-i', files[index],
+        '-vf', vf, '-an', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', part,
+      ])
+      parts.push(part)
+    }
+    const list = `${outPath}.concat.txt`
+    await writeFile(list, parts.map((file) => `file '${file.replace(/'/g, `'\\''`)}'`).join('\n'))
+    try {
+      await ffmpeg(tools, ['-hide_banner', '-loglevel', 'error', '-y', '-f', 'concat', '-safe', '0', '-i', list, '-c', 'copy', outPath])
+    } finally {
+      await unlink(list).catch(() => {})
+    }
+  } finally {
+    await Promise.all(parts.map((file) => unlink(file).catch(() => {})))
+  }
+  return outPath
 }
 
 function parseFps(text) {

@@ -18,7 +18,7 @@
 
 import { pick } from './jsonpath.js'
 
-export const PROVIDER_KINDS = ['ark-seedance', 'comfyui', 'http-generic']
+export const PROVIDER_KINDS = ['dashscope-wan', 'ark-seedance', 'comfyui', 'http-generic']
 
 export class ProviderError extends Error {
   constructor(code, message, detail) {
@@ -119,8 +119,20 @@ function buildVars(cfg, input) {
   return vars
 }
 
+export function describeFetchError(error, url) {
+  if (error instanceof ProviderError) return error.message
+  const cause = error && error.cause
+  const why = (cause && (cause.code || cause.message)) || (error && error.message) || '网络错误'
+  return `连不上 ${url}（${why}）`
+}
+
 async function requestJson(fetchImpl, url, init, signal) {
-  const res = await fetchImpl(url, { ...init, signal })
+  let res
+  try {
+    res = await fetchImpl(url, { ...init, signal })
+  } catch (error) {
+    throw new ProviderError('FETCH', describeFetchError(error, url), error && error.cause)
+  }
   const text = await res.text()
   let data
   try {
@@ -244,14 +256,30 @@ export async function createComfyUI(cfg, deps = {}) {
   const base = String(cfg.baseUrl || '').replace(/\/+$/, '')
   if (!base) throw new ProviderError('BAD_CONFIG', 'comfyui 需要 baseUrl')
 
-  let workflow = cfg.workflow
-  if (!workflow && cfg.workflowRef) {
-    const { readFile } = await import('node:fs/promises')
-    const text = await readFile(cfg.workflowRef, 'utf8')
-    workflow = JSON.parse(text)
+  async function loadWorkflow() {
+    let workflow = cfg.workflow
+    if (!workflow && cfg.workflowRef) {
+      const { readFile } = await import('node:fs/promises')
+      const text = await readFile(cfg.workflowRef, 'utf8')
+      workflow = JSON.parse(text)
+    }
+    if (workflow && workflow.prompt && typeof workflow.prompt === 'object') workflow = workflow.prompt
+    if (!workflow || typeof workflow !== 'object') {
+      throw new ProviderError('BAD_CONFIG', 'comfyui 需要工作流文件路径')
+    }
+    return workflow
   }
-  if (!workflow || typeof workflow !== 'object') {
-    throw new ProviderError('BAD_CONFIG', 'comfyui 需要 workflow 对象或 workflowRef 文件路径')
+
+  function withPrompt(workflow, vars) {
+    const patched = applyWorkflowVars(workflow, vars)
+    if (JSON.stringify(workflow).includes('{{prompt}}')) return patched
+    for (const node of Object.values(patched)) {
+      if (node?.class_type === 'CLIPTextEncode' && node.inputs && typeof node.inputs.text === 'string') {
+        node.inputs.text = vars.prompt
+        break
+      }
+    }
+    return patched
   }
 
   return {
@@ -269,7 +297,7 @@ export async function createComfyUI(cfg, deps = {}) {
 
     async submit(input, signal) {
       const vars = buildVars(cfg, input)
-      const body = { prompt: applyWorkflowVars(workflow, vars), client_id: 'content-studio' }
+      const body = { prompt: withPrompt(await loadWorkflow(), vars), client_id: 'content-studio' }
       const data = await requestJson(fetchImpl, joinUrl(base, '/prompt'), {
         method: 'POST',
         headers: { 'content-type': 'application/json', accept: 'application/json' },
@@ -412,6 +440,7 @@ export function createArkSeedance(cfg, deps = {}) {
 
 /** Kinds that participate in one role each. `role` overrides the mapping. */
 export const KIND_ROLE = {
+  'dashscope-wan': 'video',
   'ark-seedance': 'video',
   comfyui: 'video',
   'http-generic': 'video',
@@ -427,6 +456,10 @@ export function roleOf(cfg) {
 export async function createProvider(cfg, deps = {}) {
   if (!cfg || typeof cfg !== 'object') throw new ProviderError('BAD_CONFIG', 'provider 配置缺失')
   switch (cfg.kind) {
+    case 'dashscope-wan': {
+      const { createWanT2v } = await import('./providers/wan.js')
+      return createWanT2v(cfg, deps)
+    }
     case 'ark-seedance':
       return createArkSeedance(cfg, deps)
     case 'comfyui':
@@ -450,22 +483,174 @@ export async function createProvider(cfg, deps = {}) {
   }
 }
 
+function modelIds(data) {
+  const rows = Array.isArray(data?.data)
+    ? data.data
+    : Array.isArray(data?.models)
+      ? data.models
+      : Array.isArray(data)
+        ? data
+        : []
+  return rows.map((row) => String(row?.id || row?.name || row || '')).filter(Boolean).slice(0, 200)
+}
+
+function openaiRoot(cfg) {
+  const fallback = cfg.kind === 'ark-seedance'
+    ? 'https://ark.cn-beijing.volces.com/api/v3/contents/generations/tasks'
+    : ''
+  return String(cfg.baseUrl || fallback)
+    .replace(/\/+$/, '')
+    .replace(/\/contents\/generations\/tasks$/i, '')
+}
+
+/** If the form already has an OpenAI-style /v1 root, use it as-is. */
+function compatibleRoot(url) {
+  const raw = String(url || '').trim().replace(/\/+$/, '')
+  if (/\/compatible-mode\/v\d+$/i.test(raw) || /\/v\d+$/i.test(raw)) return raw
+  return ''
+}
+
+function getJson(url, apiKey) {
+  const headers = { accept: 'application/json', 'content-type': 'application/json' }
+  if (apiKey) headers.authorization = `Bearer ${apiKey}`
+  return requestJson(globalThis.fetch, url, { method: 'GET', headers })
+}
+
+function catalogIds(data) {
+  const rows = data?.output?.models || data?.models || []
+  return rows.map((row) => String(row?.model || row?.id || row?.name || '')).filter(Boolean)
+}
+
+function isWanVideoGen(id) {
+  const s = String(id || '').toLowerCase()
+  if (/image|edit|animate|detect|s2v/.test(s)) return false
+  if (/-\d{4}-\d{2}-\d{2}$/.test(s)) return false
+  return /t2v|i2v|r2v|kf2v|video/.test(s)
+}
+
+function rankWanVideo(id) {
+  const s = String(id).toLowerCase()
+  if (s.startsWith('wan3.0-video')) return 0
+  if (/t2v/.test(s)) return 1
+  if (/i2v/.test(s)) return 2
+  if (/r2v/.test(s)) return 3
+  return 4
+}
+
+// ponytail: 目录拉空时用常用万相 ID，控制台有新模型再靠目录
+const WAN_VIDEO_FALLBACK = [
+  'wan3.0-video', 'wan3.0-video-prime',
+  'wan2.7-t2v', 'wan2.7-i2v', 'wan2.7-r2v',
+  'wan2.6-t2v', 'wan2.6-i2v', 'wan2.6-i2v-flash',
+  'wan2.5-t2v-preview', 'wan2.2-t2v-plus', 'wan2.2-i2v-plus',
+]
+
+/** 百炼控制台同款目录，不是 OpenAI 兼容 /v1/models。 */
+async function listBailianCatalog(origin, apiKey, query) {
+  const ids = []
+  let page = 1
+  const pageSize = 100
+  for (;;) {
+    const url = `${origin}/api/v1/models?${query}&page_no=${page}&page_size=${pageSize}&language=zh-CN`
+    const data = await getJson(url, apiKey)
+    const batch = catalogIds(data)
+    ids.push(...batch)
+    const total = Number(data?.output?.total || 0)
+    if (!batch.length || (total && ids.length >= total) || page >= 8) break
+    page += 1
+  }
+  return [...new Set(ids)]
+}
+
+/**
+ * Ask the upstream for its model catalog. Empty address throws; unknown kinds return [].
+ */
+export async function listUpstreamModels(cfg) {
+  const kind = cfg.kind
+  const typed = cfg.origin || cfg.baseUrl || ''
+  const pasted = compatibleRoot(typed)
+  if (kind === 'dashscope-wan') {
+    const { wanOrigin } = await import('./providers/wan.js')
+    const origin = wanOrigin(cfg)
+    try {
+      const video = (await listBailianCatalog(origin, cfg.apiKey, 'capabilities=VG&providers=wan'))
+        .filter(isWanVideoGen)
+        .sort((a, b) => rankWanVideo(a) - rankWanVideo(b) || a.localeCompare(b))
+      if (video.length) return video
+    } catch { /* 没有目录接口时用内置万相，绝不回退到 100+ 个对话模型 */ }
+    return WAN_VIDEO_FALLBACK
+  }
+  if (kind === 'tts') {
+    const origin = String(cfg.baseUrl || '').replace(/\/+$/, '').replace(/\/compatible-mode\/v1$/i, '')
+    if (/dashscope\.aliyuncs\.com|maas\.aliyuncs\.com/i.test(origin)) {
+      try {
+        const ids = (await listBailianCatalog(origin, cfg.apiKey, 'capabilities=TTS'))
+          .filter((id) => /^qwen3-tts/i.test(id) && !/realtime/i.test(id))
+        if (ids.length) return ids
+      } catch { /* 没有目录接口时不要把对话模型塞进配音下拉 */ }
+      return ['qwen3-tts-flash']
+    }
+    const root = pasted || openaiRoot(cfg)
+    if (!root) throw new Error('请先填写地址')
+    return modelIds(await getJson(`${root}/models`, cfg.apiKey))
+  }
+  if (kind === 'llm' || kind === 'image' || kind === 'ark-seedance') {
+    const root = pasted || openaiRoot(cfg)
+    if (!root) throw new Error('请先填写地址')
+    return modelIds(await getJson(`${root}/models`, cfg.apiKey))
+  }
+  if (kind === 'comfyui') {
+    const origin = String(cfg.baseUrl || '').replace(/\/+$/, '')
+    if (!origin) throw new Error('请先填写地址')
+    const names = []
+    for (const folder of ['checkpoints', 'diffusion_models', 'unet']) {
+      try {
+        const data = await getJson(`${origin}/models/${folder}`)
+        if (Array.isArray(data)) names.push(...data.map(String))
+      } catch { /* folder may not exist on this ComfyUI */ }
+    }
+    if (!names.length) throw new Error('未列出模型，确认 ComfyUI 已启动')
+    return [...new Set(names)]
+  }
+  return []
+}
+
 /**
  * Build the role → instance map one pipeline run needs.
  * Enabled providers only; a disabled provider is the same as "not configured".
  */
 export async function resolveRoleProviders(list, deps = {}) {
-  const roles = {}
+  const grouped = new Map()
   for (const cfg of list) {
     if (cfg.enabled === false) continue
     const role = roleOf(cfg)
-    if (roles[role]) continue
-    try {
-      roles[role] = await createProvider(cfg, deps)
-      roles[role].__id = cfg.id
-    } catch (error) {
-      roles[`${role}:error`] = error.message
+    if (!grouped.has(role)) grouped.set(role, [])
+    grouped.get(role).push(cfg)
+  }
+  const roles = {}
+  for (const [role, cfgs] of grouped) {
+    let fallback
+    for (const cfg of cfgs) {
+      try {
+        const instance = await createProvider(cfg, deps)
+        instance.__id = cfg.id
+        fallback ||= instance
+        if (cfgs.length === 1) {
+          roles[role] = instance
+          break
+        }
+        const health = await instance.healthCheck()
+        if (health.ok) {
+          roles[role] = instance
+          fallback = undefined
+          break
+        }
+        roles[`${role}:error`] = `${cfg.id}: ${health.detail || '不可用'}`
+      } catch (error) {
+        roles[`${role}:error`] = error.message
+      }
     }
+    if (!roles[role] && fallback) roles[role] = fallback
   }
   return roles
 }

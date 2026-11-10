@@ -131,6 +131,10 @@ export async function runItem(options) {
       const existing = await readJsonSafe(join(dir, 'script.json'))
       if (existing && !force) return existing
       if (!providers.llm) throw new Error('未配置文案模型（llm provider）')
+      const review = await readJsonSafe(join(item.dir, '09-review', 'review.json'))
+      const revision = review?.decision === 'rejected'
+        ? { reason: review.reason, note: review.note, previous: review.previous }
+        : undefined
       const result = await generateScript(
         providers.llm,
         {
@@ -141,6 +145,7 @@ export async function runItem(options) {
           shotCount: config.shotCount || 8,
           groups: config.groups || [],
           materialCount: materials.length,
+          revision,
         },
         { signal, maxAttempts: 2 },
       )

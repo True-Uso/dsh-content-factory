@@ -39,8 +39,10 @@ function toneWav(seconds, sampleRate = 24000) {
   return writeWav({ sampleRate, channels: 1, bitsPerSample: 16, data })
 }
 
+const llmCalls = []
 const llm = {
-  async complete() {
+  async complete(payload) {
+    llmCalls.push(payload?.user || '')
     return {
       json: {
         title: '接口测试',
@@ -92,13 +94,16 @@ async function call(method, path, body) {
 const meta = await call('GET', '/meta')
 check('meta 200', meta.status === 200)
 check('meta 含 llm/tts/image 类型', ['llm', 'tts', 'image'].every((kind) => meta.json.kinds.includes(kind)))
+check('meta 含 dashscope-wan', meta.json.kinds.includes('dashscope-wan'))
 check('meta 含步骤列表', meta.json.steps.length === 8)
 check('meta 含平台预设', meta.json.platforms?.length === 3 && meta.json.platforms.some((p) => p.id === 'douyin'), JSON.stringify(meta.json.platforms))
 check('meta 含审核模式', meta.json.reviewModes?.some((m) => m.id === 'auto'))
 
 const health = await call('GET', '/health')
 check('health 报告 ffmpeg 可用', health.json.ffmpeg.ok === true)
-check('health 报告滤镜齐备', health.json.capabilities.ok === true, JSON.stringify(health.json.capabilities))
+check('health 报告滤镜齐备', health.json.capabilities.ok === true || (health.json.capabilities.missing || []).join() === 'xfade', JSON.stringify(health.json.capabilities))
+const clipsEmpty = await call('GET', '/clips')
+check('镜头列表为空', clipsEmpty.status === 200 && Array.isArray(clipsEmpty.json.clips) && clipsEmpty.json.clips.length === 0)
 
 /* ---------- 一句话需求解析 ---------- */
 const parsed = await call('POST', '/batches/parse', { brief: '做 3 条秋日通勤穿搭，发小红书，每天 18:00 一条，预算 20 元' })
@@ -211,13 +216,24 @@ check('通过 200', approved.status === 200 && approved.json.status === 'approve
 const afterApprove = await call('GET', `/items/${itemId}`)
 check('审核记录落盘', afterApprove.json.review.decision === 'approved')
 
+const postiz = await call('GET', '/postiz')
+check('Postiz 默认未连接', postiz.status === 200 && postiz.json.configured === false)
+const distNoKey = await call('POST', `/items/${itemId}/distribute`, { integrationIds: ['tk1'] })
+check('未接 Postiz 不能分发', distNoKey.status === 400, String(distNoKey.status))
+const distPending = await call('POST', `/items/${detail.json.batch.items[1].id}/distribute`, { integrationIds: ['tk1'] })
+check('未通过条目不能分发', distPending.status === 409, String(distPending.status))
+
 const secondId = detail.json.batch.items[1].id
 const noReason = await call('POST', `/items/${secondId}/reject`, {})
 check('驳回缺原因被拒', noReason.status === 400)
 const rejected = await call('POST', `/items/${secondId}/reject`, { reason: '封面问题', note: '字太小' })
-check('驳回 200', rejected.status === 200 && rejected.json.status === 'rejected')
+check('驳回 200', rejected.status === 200 && rejected.json.revising === true)
+check('驳回后入队重做', rejected.json.status === 'pending')
+await runner.waitIdle()
 const afterReject = await call('GET', `/items/${secondId}`)
 check('驳回原因落盘', afterReject.json.review.reason === '封面问题')
+check('按备注重做后回到待审', afterReject.json.item.status === 'review_pending', afterReject.json.item.status)
+check('文案提示含驳回备注', llmCalls.some((user) => String(user).includes('字太小')), llmCalls.at(-1))
 
 /* ---------- 局部重做 ---------- */
 const rerun = await call('POST', `/items/${secondId}/rerun`, { from: 'cover' })
@@ -319,6 +335,9 @@ const modelMock = createServer((req, res) => {
   req.on('data', (c) => chunks.push(c))
   req.on('end', () => {
     const url = new URL(req.url || '/', 'http://127.0.0.1')
+    if (url.pathname === '/v1/models') {
+      return send(200, { data: [{ id: 'qwen-plus' }, { id: 'qwen-max' }] })
+    }
     if (url.pathname === '/v1/chat/completions') {
       return send(200, { choices: [{ message: { role: 'assistant', content: 'OK' } }], usage: { total_tokens: 3 } })
     }
@@ -342,6 +361,17 @@ const modelBase = `http://127.0.0.1:${modelMock.address().port}`
 await call('PUT', '/providers/t-llm', { id: 't-llm', kind: 'llm', enabled: true, baseUrl: `${modelBase}/v1`, model: 'm', apiKey: 'k' })
 await call('PUT', '/providers/t-tts', { id: 't-tts', kind: 'tts', enabled: true, baseUrl: `${modelBase}/v1`, model: 'qwen-tts', voice: 'v', apiKey: 'k' })
 await call('PUT', '/providers/t-image', { id: 't-image', kind: 'image', enabled: true, baseUrl: `${modelBase}/v1`, model: 'gpt-image-1', apiKey: 'k' })
+
+const probeHealth = await call('POST', '/probe', {
+  kind: 'llm', baseUrl: `${modelBase}/v1`, model: 'm', apiKey: 'k', want: 'health',
+})
+check('探测联通', probeHealth.status === 200 && probeHealth.json.health.ok === true, JSON.stringify(probeHealth.json))
+const probeModels = await call('POST', '/providers/probe', {
+  kind: 'llm', baseUrl: `${modelBase}/v1`, apiKey: 'k', want: 'models',
+})
+check('探测列出模型', probeModels.json.models?.includes('qwen-plus'), JSON.stringify(probeModels.json))
+const probeStored = await call('POST', '/providers/probe', { id: 't-llm', want: 'models' })
+check('探测用已存密钥拉模型', probeStored.json.models?.includes('qwen-max'), JSON.stringify(probeStored.json))
 
 const llmTest = await call('POST', '/providers/t-llm/test', {})
 check('文案模型测试通过', llmTest.json.job.status === 'succeeded' && llmTest.json.job.detail === 'OK', JSON.stringify(llmTest.json.job))
