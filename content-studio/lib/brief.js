@@ -10,6 +10,13 @@ const PLATFORM_WORDS = [
   ['抖音', 'douyin'],
   ['小红书', 'xiaohongshu'],
   ['视频号', 'shipinhao'],
+  ['TikTok', 'tiktok'],
+  ['tiktok', 'tiktok'],
+  ['Instagram', 'instagram'],
+  ['Reels', 'instagram'],
+  ['YouTube', 'youtube'],
+  ['Shorts', 'youtube'],
+  ['LinkedIn', 'linkedin'],
 ]
 
 function clampInt(value, min, max) {
@@ -65,7 +72,7 @@ function cleanTopic(text) {
     .replace(/^(帮我|请|麻烦)?\s*(做|生成|制作|批量生产|生产)?\s*/, '')
     .replace(/\d+\s*(条|个|支|期)/g, '')
     .replace(/[一二三四五六七八九十两]+\s*(条|个|支|期)/g, '')
-    .replace(/抖音|小红书|视频号/g, '')
+    .replace(/抖音|小红书|视频号|TikTok|tiktok|Instagram|Reels|YouTube|Shorts|LinkedIn/g, '')
     .replace(/(每天|每日)\s*\d{1,2}\s*[:：点]\s*\d{0,2}/g, '')
     .replace(/\d{1,2}\s*[:：点]\s*\d{0,2}\s*(发|发布)/g, '')
     .replace(/(预算|成本上限|花费)\s*[¥￥]?\s*\d+(?:\.\d+)?\s*元?/g, '')

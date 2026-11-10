@@ -1,7 +1,17 @@
-import { ITEM_STATUS, listBatches, loadBatch, updateBatch, updateItem } from './batch-store.js'
+import { join } from 'node:path'
+import { ITEM_STATUS, listBatches, loadBatch, readJson, updateBatch, updateItem } from './batch-store.js'
 import { runItem } from './pipeline.js'
 import { loadProviders } from './store.js'
 import { loadIndex } from './steps/scan.js'
+
+async function loadMaterialsForBatch(batchId) {
+  const batch = await loadBatch(batchId)
+  if (batch) {
+    const snapshot = await readJson(join(batch.dir, '00-materials', 'materials.json'))
+    if (snapshot && Array.isArray(snapshot.entries)) return snapshot.entries
+  }
+  return (await loadIndex()).entries
+}
 
 /**
  * Batch runner.
@@ -112,7 +122,7 @@ export function createRunner(options = {}) {
       // Providers and the material index are read at execution time so a batch
       // picks up a provider the user just configured, without a restart.
       const providers = typeof options.providers === 'function' ? await options.providers() : options.providers || (await defaultProviders())
-      const materials = typeof options.materials === 'function' ? await options.materials() : options.materials || (await loadIndex()).entries
+      const materials = typeof options.materials === 'function' ? await options.materials() : options.materials || await loadMaterialsForBatch(job.batchId)
       const tools = options.tools || (await import('./ffmpeg.js')).resolveTools()
       const result = await runItem({
         batchId: job.batchId,

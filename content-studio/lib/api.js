@@ -25,6 +25,7 @@ import { parseBrief } from './brief.js'
 import { installFfmpeg } from './install-tools.js'
 import { batchExportName, buildBatchZip, buildItemZip, itemExportName } from './export.js'
 import { distributeItem, listChannels, loadPostiz, publicPostiz, savePostiz } from './postiz.js'
+import { PUBLISH_STATUS, createPublishJob, listPublishJobs, loadPublishJob, savePublishTargets, updatePublishJob } from './publish-store.js'
 
 const MASK = '__stored__'
 const MAX_BODY = 1024 * 1024
@@ -53,7 +54,7 @@ const REVIEW_REASONS = ['文案质量', '画面质量', '封面问题', '配音�
  * HTTP surface for the workbench (SPEC §11.2).
  * Plain node handlers so it works behind `webServer.register`.
  */
-export function createApi({ runner, prefix = '/content-studio/api', allowedOrigin = null }) {
+export function createApi({ runner, publisher = null, prefix = '/content-studio/api', allowedOrigin = null }) {
   const streams = new Set()
 
   function broadcast(event) {
@@ -85,6 +86,35 @@ export function createApi({ runner, prefix = '/content-studio/api', allowedOrigi
     } catch (error) {
       return sendJson(res, error.status || 500, { error: messageOf(error) })
     }
+  }
+
+  async function schedulePublication(batchId, itemId, body = {}) {
+    if (!publisher) throw Object.assign(new Error('发布服务未就绪'), { status: 503 })
+    const batch = await loadBatch(batchId)
+    const { item } = await loadItem(batchId, itemId)
+    if (item.status !== ITEM_STATUS.approved) throw Object.assign(new Error(`只有审核通过的条目能发布，当前是 ${item.status}`), { status: 409 })
+    const channels = await listChannels(await loadPostiz())
+    const ids = [...new Set((body.integrationIds || batch.config?.publish?.targetIntegrationIds || []).filter(Boolean))]
+    if (ids.length === 0) throw Object.assign(new Error('请先选择至少一个发布账号'), { status: 400 })
+    const targets = ids.map((id) => {
+      const channel = channels.find((entry) => entry.id === id)
+      if (!channel) throw Object.assign(new Error(`找不到发布账号：${id}`), { status: 400 })
+      return channel
+    })
+    const start = body.scheduleAt || batch.config?.publishStartAt || new Date().toISOString()
+    const parsedStart = Date.parse(start)
+    const interval = Number(batch.config?.publishIntervalMinutes) || 0
+    const scheduleAt = body.scheduleAt || (Number.isFinite(parsedStart)
+      ? new Date(parsedStart + Math.max(0, item.seq - 1) * interval * 60 * 1000).toISOString()
+      : new Date().toISOString())
+    return publisher.scheduleItem({
+      batch,
+      item,
+      targets,
+      scheduleAt,
+      contentVersion: item.publish?.contentVersion || 1,
+      policy: body.policy || 'after_approval',
+    })
   }
 
   async function route(method, path, url, req, res) {
@@ -145,6 +175,19 @@ export function createApi({ runner, prefix = '/content-studio/api', allowedOrigi
         return sendJson(res, error.status || 502, { error: messageOf(error), channels: [] })
       }
     }
+    if (method === 'GET' && path === '/publish/channels') {
+      try {
+        return sendJson(res, 200, { channels: await listChannels(await loadPostiz()) })
+      } catch (error) {
+        return sendJson(res, error.status || 502, { error: messageOf(error), channels: [] })
+      }
+    }
+    if (method === 'GET' && path === '/publish/jobs') {
+      const batches = await listBatches(200)
+      const jobs = []
+      for (const batch of batches) jobs.push(...await listPublishJobs(batch.dir))
+      return sendJson(res, 200, { jobs })
+    }
 
     /* ---------------- providers ---------------- */
     if (method === 'GET' && path === '/providers') {
@@ -163,7 +206,7 @@ export function createApi({ runner, prefix = '/content-studio/api', allowedOrigi
       if (id === 'probe' && method === 'POST' && !action) return probeFromBody(req, res)
 
       if (method === 'PUT' && !action) {
-        if (!/^[A-Za-z0-9._-]{1,64}$/.test(id)) return sendJson(res, 400, { error: 'id 只能包含字母、数字、点、下划线、短横线（≤64）' })
+        if (!/^[\p{L}\p{N}._-]{1,64}$/u.test(id)) return sendJson(res, 400, { error: '配置名称支持中文、字母、数字、点、下划线和短横线（≤64）' })
         const body = await readJson(req)
         const previous = (await loadProviders()).find((p) => p.id === id)
         const record = await upsertProvider({ ...unmaskProvider(body, previous), id })
@@ -242,14 +285,45 @@ export function createApi({ runner, prefix = '/content-studio/api', allowedOrigi
       return sendJson(res, 200, result)
     }
 
-    if (method === 'POST' && path === '/batches') {
+    if (method === 'POST' && path === '/batches/preflight') {
       const body = await readJson(req)
-      if (!body.title && !body.config?.topic) return sendJson(res, 400, { error: '需要 title 或 config.topic' })
-      const config = normalizeBatchConfig(body.config || {})
+      let config = normalizeBatchConfig(body.config || {})
       const tools = await resolveTools()
       const injected = runner?.roles?.()
       const roles = injected || new Set((await loadProviders()).filter((p) => p.enabled !== false).map((p) => roleOf(p)))
-      const index = await loadIndex()
+      let index = await loadIndex()
+      const dirs = Array.isArray(config.materialsDirs) ? config.materialsDirs.filter(Boolean) : []
+      if (dirs.length > 0) {
+        const scanned = await scanMaterials({ dirs, tools })
+        index = scanned.index
+        config = { ...config, materialsSnapshotAt: Date.now() }
+      }
+      const count = Number(body.count) || 1
+      const check = await preflight({ tools, roles, materials: index.entries, config, count })
+      return sendJson(res, 200, { preflight: check, config, materials: { count: index.entries.length } })
+    }
+
+    if (method === 'POST' && path === '/batches') {
+      const body = await readJson(req)
+      if (!body.title && !body.config?.topic) return sendJson(res, 400, { error: '需要 title 或 config.topic' })
+      let config = normalizeBatchConfig(body.config || {})
+      const tools = await resolveTools()
+      const injected = runner?.roles?.()
+      const roles = injected || new Set((await loadProviders()).filter((p) => p.enabled !== false).map((p) => roleOf(p)))
+      let index = await loadIndex()
+      let materialsSnapshot = null
+      const materialDirs = Array.isArray(config.materialsDirs) ? config.materialsDirs.filter(Boolean) : []
+      if (materialDirs.length > 0) {
+        const scanned = await scanMaterials({ dirs: materialDirs, tools })
+        index = scanned.index
+        materialsSnapshot = {
+          sourceDirs: materialDirs,
+          scannedAt: Date.now(),
+          entries: index.entries,
+          invalid: scanned.invalid,
+        }
+        config = { ...config, materialsSnapshotAt: materialsSnapshot.scannedAt }
+      }
       const count = Number(body.count) || 1
       const check = await preflight({
         tools,
@@ -262,8 +336,9 @@ export function createApi({ runner, prefix = '/content-studio/api', allowedOrigi
         title: body.title || body.config?.topic,
         count,
         config,
+        materialsSnapshot,
       })
-      return sendJson(res, 200, { batch, preflight: check })
+      return sendJson(res, 200, { batch, preflight: check, materials: { count: index.entries.length, snapshotAt: materialsSnapshot?.scannedAt || null } })
     }
 
     const batchMatch = /^\/batches\/([^/]+)(?:\/(start|pause|resume|cancel|items|config|log|export))?$/.exec(path)
@@ -372,7 +447,7 @@ export function createApi({ runner, prefix = '/content-studio/api', allowedOrigi
     }
 
     /* ---------------- items ---------------- */
-    const itemMatch = /^\/items\/([^/]+)(?:\/(rerun|approve|reject|retry|script|unapprove|log|export|distribute))?$/.exec(path)
+    const itemMatch = /^\/items\/([^/]+)(?:\/(rerun|approve|reject|retry|script|unapprove|log|export|distribute|publish|publish\/retry|publish\/cancel))?$/.exec(path)
     if (itemMatch) {
       const itemId = decodeURIComponent(itemMatch[1])
       const action = itemMatch[2]
@@ -416,8 +491,20 @@ export function createApi({ runner, prefix = '/content-studio/api', allowedOrigi
         }
         await writeJson(join(item.dir, '09-review', 'review.json'), review)
         await updateItem(batchId, item.id, () => ({ status: ITEM_STATUS.approved }))
+        let publishJob = null
+        const approvedBatch = await loadBatch(batchId)
+        if (approvedBatch?.config?.publish?.enabled && (approvedBatch.config.publish.targetIntegrationIds || []).length > 0) {
+          try {
+            publishJob = await schedulePublication(batchId, item.id, {
+              integrationIds: approvedBatch.config.publish.targetIntegrationIds,
+              policy: 'after_approval',
+            })
+          } catch (publishError) {
+            console.warn('[content-studio] 创建发布任务失败:', publishError.message)
+          }
+        }
         await runner?.refreshBatchStatus(batchId)
-        return sendJson(res, 200, { itemId: item.id, status: ITEM_STATUS.approved })
+        return sendJson(res, 200, { itemId: item.id, status: ITEM_STATUS.approved, publishJob })
       }
 
       if (method === 'POST' && action === 'reject') {
@@ -494,6 +581,13 @@ export function createApi({ runner, prefix = '/content-studio/api', allowedOrigi
         const review = (await readJsonSafe(reviewPath)) || {}
         await writeJson(reviewPath, { ...review, decision: 'withdrawn', withdrawnAt: Date.now() })
         await updateItem(batchId, item.id, () => ({ status: ITEM_STATUS.reviewPending }))
+        const withdrawnBatch = await loadBatch(batchId)
+        if (withdrawnBatch) {
+          const jobs = await listPublishJobs(withdrawnBatch.dir)
+          for (const job of jobs.filter((entry) => entry.itemId === item.id && [PUBLISH_STATUS.scheduled, PUBLISH_STATUS.publishing].includes(entry.status))) {
+            await updatePublishJob(withdrawnBatch.dir, job.id, () => ({ status: PUBLISH_STATUS.cancelled, leaseUntil: null, nextAttemptAt: null }))
+          }
+        }
         await runner?.refreshBatchStatus(batchId)
         return sendJson(res, 200, { itemId: item.id, status: ITEM_STATUS.reviewPending })
       }
@@ -510,6 +604,42 @@ export function createApi({ runner, prefix = '/content-studio/api', allowedOrigi
         const parent = await loadBatch(batchId)
         const zip = await buildItemZip(item, parent?.config || {})
         return sendZip(res, zip, itemExportName(item))
+      }
+
+      if (method === 'GET' && action === 'publish') {
+        const batch = await loadBatch(batchId)
+        return sendJson(res, 200, { jobs: batch ? await listPublishJobs(batch.dir) : [] })
+      }
+
+      if (method === 'POST' && action === 'publish') {
+        const body = await readJson(req)
+        const job = await schedulePublication(batchId, item.id, body)
+        return sendJson(res, 200, { itemId: item.id, job })
+      }
+
+      if (method === 'POST' && action === 'publish/retry') {
+        const batch = await loadBatch(batchId)
+        const jobs = batch ? await listPublishJobs(batch.dir) : []
+        const current = jobs.filter((job) => job.itemId === item.id).sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)))[0]
+        if (!current) return sendJson(res, 404, { error: '没有可重试的发布任务' })
+        const job = await updatePublishJob(batch.dir, current.id, (existing) => ({
+          status: PUBLISH_STATUS.scheduled,
+          nextAttemptAt: new Date().toISOString(),
+          leaseUntil: null,
+          lastError: null,
+        }))
+        await publisher?.tick()
+        return sendJson(res, 200, { itemId: item.id, job })
+      }
+
+      if (method === 'POST' && action === 'publish/cancel') {
+        const batch = await loadBatch(batchId)
+        const jobs = batch ? await listPublishJobs(batch.dir) : []
+        const active = jobs.filter((job) => job.itemId === item.id && [PUBLISH_STATUS.scheduled, PUBLISH_STATUS.publishing].includes(job.status))
+        for (const job of active) {
+          await updatePublishJob(batch.dir, job.id, () => ({ status: PUBLISH_STATUS.cancelled, leaseUntil: null, nextAttemptAt: null }))
+        }
+        return sendJson(res, 200, { itemId: item.id, cancelled: active.length })
       }
 
       if (method === 'POST' && action === 'distribute') {
@@ -812,10 +942,16 @@ function batchTotals(batch) {
   const rawCap = Number(batch?.config?.costCap)
   const costCap = Number.isFinite(rawCap) && rawCap > 0 ? rawCap : null
   const ratio = costCap && cost.priced ? cost.total / costCap : 0
+  const publish = items.reduce((acc, item) => {
+    const status = item.publish?.status || 'not_requested'
+    acc[status] = (acc[status] || 0) + 1
+    return acc
+  }, {})
   return {
     usage,
     cost,
     items: items.length,
+    publish,
     costCap,
     capRatio: ratio,
     capWarning: ratio >= 0.8,

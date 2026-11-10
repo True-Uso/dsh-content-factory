@@ -11,7 +11,7 @@ function check(name, condition, extra = '') {
   console.log(`  ok  ${name}`)
 }
 
-check('三个平台预设', listPlatforms().length === 3, String(listPlatforms().length))
+check('国内与海外平台预设', listPlatforms().length >= 7, String(listPlatforms().length))
 check('默认平台是抖音', DEFAULT_PLATFORM === 'douyin')
 check('未知平台回退到默认', getPlatform('unknown').id === 'douyin')
 
@@ -46,7 +46,9 @@ check('显式画幅不被覆盖', overridden.aspectRatio === '16:9')
 check('显式时长不被覆盖', overridden.targetSec === 40)
 check('显式校验规则优先', overridden.validationRules.maxTitleLength === 50)
 
-const platformRows = PLATFORMS.every((platform) => platform.coverWidth === 1080 && platform.coverHeight === 1920)
-check('v1 封面尺寸复用已验证值', platformRows)
+const domesticRows = PLATFORMS.filter((platform) => ['douyin', 'xiaohongshu', 'shipinhao'].includes(platform.id))
+const overseasRows = PLATFORMS.filter((platform) => ['tiktok', 'instagram', 'youtube', 'linkedin'].includes(platform.id))
+check('国内平台保持竖版封面', domesticRows.every((platform) => platform.coverWidth === 1080 && platform.coverHeight === 1920))
+check('海外平台已加入矩阵', overseasRows.length === 4)
 
 console.log(`\nALL PLATFORM CHECKS PASSED (${passed})`)

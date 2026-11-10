@@ -159,6 +159,14 @@ export async function createBatch(input) {
     cost: { estimated: Number(input.costEstimate) || 0, actual: 0 },
   }
   await writeJson(join(dir, 'batch.json'), batch)
+  if (input.materialsSnapshot && Array.isArray(input.materialsSnapshot.entries)) {
+    await writeJson(join(dir, '00-materials', 'materials.json'), {
+      version: 1,
+      sourceDirs: input.materialsSnapshot.sourceDirs || [],
+      scannedAt: input.materialsSnapshot.scannedAt || Date.now(),
+      entries: input.materialsSnapshot.entries,
+    })
+  }
   await appendLog(join(dir, 'batch.log'), `创建批次 ${id}，共 ${count} 条`)
   return batch
 }
@@ -224,6 +232,7 @@ export async function updateItem(batchId, itemId, mutate) {
             cost: item.cost ?? entry.cost,
             error: item.error,
             distribute: item.distribute ?? entry.distribute,
+            publish: item.publish ?? entry.publish,
             updatedAt: item.updatedAt,
           }
         : entry,

@@ -61,7 +61,7 @@ apply(ctx)
 check('注册了一条路由', ctx.routes.length === 1)
 check('路由是前缀匹配 /content-studio/api', ctx.routes[0].kind === 'prefix' && ctx.routes[0].path === '/content-studio/api')
 check('注册了两个 effect（路由 + 生命周期）', ctx.effects.length === 2)
-check('暴露了 contentStudio 服务', Boolean(ctx.provided.contentStudio?.runner))
+check('暴露了 contentStudio 服务', Boolean(ctx.provided.contentStudio?.runner && ctx.provided.contentStudio?.publisher))
 
 /* ---------- 通过真 http server 打接口 ---------- */
 const server = createServer((req, res) => void ctx.routes[0].handler(req, res))
@@ -70,7 +70,7 @@ const base = `http://127.0.0.1:${server.address().port}/content-studio/api`
 
 const meta = await (await fetch(`${base}/meta`)).json()
 check('apply 之后 meta 可用', Array.isArray(meta.steps) && meta.steps.length === 8)
-check('meta 含 6 种 kind', meta.kinds.length === 6, JSON.stringify(meta.kinds))
+check('meta 含 provider kind', meta.kinds.length >= 7 && meta.kinds.includes('image'), JSON.stringify(meta.kinds))
 
 const health = await (await fetch(`${base}/health`)).json()
 check('health 报告 ffmpeg 与队列', health.ffmpeg.ok === true && Boolean(health.queue))

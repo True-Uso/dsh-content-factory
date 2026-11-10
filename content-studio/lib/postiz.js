@@ -134,6 +134,34 @@ export async function uploadVideo(cfg, filePath, deps = {}) {
   return { id: uploaded.id, path: uploaded.path }
 }
 
+export async function publishToChannel(cfg, input, channel, deps = {}) {
+  const media = input.media || await uploadVideo(cfg, input.videoPath, deps)
+  const content = postCopy(input.script)
+  const payload = {
+    type: 'now',
+    date: new Date().toISOString(),
+    shortLink: false,
+    tags: [],
+    posts: [{
+      integration: { id: channel.id },
+      value: [{ content, image: [media] }],
+      settings: settingsFor(channel.identifier, input.script),
+    }],
+  }
+  const created = await postizFetch(cfg, '/posts', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(payload),
+    fetch: deps.fetch,
+  })
+  return {
+    at: Date.now(),
+    channel: { id: channel.id, name: channel.name, identifier: channel.identifier },
+    media,
+    posts: created,
+  }
+}
+
 export async function distributeItem(cfg, input, deps = {}) {
   const ids = [...new Set((input.integrationIds || []).filter(Boolean))]
   if (ids.length === 0) {
@@ -151,29 +179,17 @@ export async function distributeItem(cfg, input, deps = {}) {
     }
     return channel
   })
-  const media = await uploadVideo(cfg, input.videoPath, deps)
-  const content = postCopy(input.script)
-  const payload = {
-    type: 'now',
-    date: new Date().toISOString(),
-    shortLink: false,
-    tags: [],
-    posts: picked.map((channel) => ({
-      integration: { id: channel.id },
-      value: [{ content, image: [media] }],
-      settings: settingsFor(channel.identifier, input.script),
-    })),
+  let media = null
+  const results = []
+  for (const channel of picked) {
+    const result = await publishToChannel(cfg, { ...input, media }, channel, deps)
+    media = result.media
+    results.push(result)
   }
-  const created = await postizFetch(cfg, '/posts', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(payload),
-    fetch: deps.fetch,
-  })
   return {
     at: Date.now(),
     channels: picked.map((channel) => ({ id: channel.id, name: channel.name, identifier: channel.identifier })),
     media,
-    posts: created,
+    posts: results.map((result) => result.posts),
   }
 }

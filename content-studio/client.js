@@ -67,30 +67,35 @@ window.__ModuleLoader__.load({
 
     const CSS = `
 .cs-page {
-  --cs-ink: var(--dsw-alias-label-primary, #16171c);
-  --cs-paper: var(--dsw-alias-bg-layer-1, transparent);
-  --cs-well: color-mix(in srgb, #243044 8%, var(--dsw-alias-bg-layer-1, #f3f4f6));
-  --cs-display: "Noto Serif CJK SC", "Source Han Serif SC", "Songti SC", "STSong", "Noto Serif SC", Palatino, serif;
-  --cs-radius: 2px;
-  --cs-radius-lg: 4px;
-  --cs-border: var(--dsw-alias-border-l2, color-mix(in srgb, currentColor 14%, transparent));
-  --cs-border-strong: color-mix(in srgb, var(--cs-ink) 28%, transparent);
+  /* 深色宿主的层级要由插件自己掌控，不能混用宿主的浅色 layer-0 与深色 label token。 */
+  --cs-canvas: #121419;
+  --cs-ink: #f3f6fc;
+  --cs-paper: #1b1e25;
+  --cs-well: #242831;
+  --cs-fill: #1b1e25;
+  --cs-fill-2: #20242c;
+  --cs-fill-3: #2b303a;
+  --cs-hover: #2a303b;
+  --cs-border: #363c48;
+  --cs-border-strong: #4b5362;
   --cs-text: var(--cs-ink);
-  --cs-text-2: var(--dsw-alias-label-secondary, color-mix(in srgb, var(--cs-ink) 68%, transparent));
-  --cs-text-3: var(--dsw-alias-label-tertiary, color-mix(in srgb, var(--cs-ink) 48%, transparent));
-  --cs-fill: var(--dsw-alias-bg-layer-1, transparent);
-  --cs-fill-2: var(--dsw-alias-bg-layer-3, color-mix(in srgb, currentColor 5%, transparent));
-  --cs-fill-3: var(--dsw-alias-bg-layer-4, color-mix(in srgb, currentColor 8%, transparent));
-  --cs-hover: var(--dsw-alias-interactive-bg-hover, color-mix(in srgb, currentColor 6%, transparent));
-  --cs-accent: var(--cs-ink);
-  --cs-success: var(--dsw-alias-state-success-primary, #2ea043);
-  --cs-warn: var(--dsw-alias-state-warn-primary, #d29922);
-  --cs-danger: var(--dsw-alias-state-error-primary, #f85149);
-  color: var(--cs-text); font-size: 14px; line-height: 1.45;
+  --cs-text-2: #bec7d6;
+  --cs-text-3: #8d98aa;
+  --cs-accent: #86aaff;
+  --cs-accent-strong: #a8c2ff;
+  --cs-on-accent: #101827;
+  --cs-media-bg: #0c0f14;
+  --cs-display: "Noto Serif CJK SC", "Source Han Serif SC", "Songti SC", "STSong", "Noto Serif SC", Palatino, serif;
+  --cs-radius: 10px;
+  --cs-radius-lg: 14px;
+  --cs-success: #55c98a;
+  --cs-warn: #f2b85b;
+  --cs-danger: #ff7582;
+  color: var(--cs-text); background: var(--cs-canvas); font-size: 14px; line-height: 1.45;
   font-family: "Noto Sans CJK SC", "Source Han Sans SC", "PingFang SC", "Hiragino Sans GB", system-ui, sans-serif;
   display: flex; flex-direction: column;
 }
-.cs-page { flex: 1 1 auto; height: 100%; min-height: 0; overflow: hidden; overscroll-behavior: contain; }
+.cs-page { flex: 1 1 auto; height: 100%; min-height: 0; overflow: hidden; overscroll-behavior: contain; background: var(--cs-canvas); }
 .cs-page-inner { display: flex; flex-direction: column; gap: 0; padding: 0; margin: 0; width: 100%; height: 100%; min-height: 0; max-width: none; }
 .cs-page *, .cs-page *::before, .cs-page *::after { box-sizing: border-box; }
 .cs-page h1, .cs-page h2, .cs-page h3, .cs-page p { margin: 0; }
@@ -101,18 +106,18 @@ window.__ModuleLoader__.load({
 .cs-page input:focus, .cs-page select:focus, .cs-page textarea:focus { outline: none; }
 .cs-page input::placeholder, .cs-page textarea::placeholder { color: var(--cs-text-3); }
 
-.cs-chrome { display: flex; align-items: baseline; gap: 28px; padding: 18px 28px 10px; flex-shrink: 0; }
+.cs-chrome { position: relative; display: flex; align-items: center; justify-content: center; gap: 22px; padding: 20px 28px 14px; flex-shrink: 0; border-bottom: 1px solid var(--cs-border); background: var(--cs-canvas); }
 .cs-header { display: contents; }
-.cs-title { font-family: var(--cs-display); font-size: 30px; line-height: 1; font-weight: 600; }
+.cs-title { margin-right: auto; font-family: var(--cs-display); font-size: 30px; line-height: 1; letter-spacing: -0.03em; font-weight: 600; }
 .cs-subtitle { display: none; }
 .cs-header-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-.cs-body { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; padding: 0 28px 20px; overflow: hidden; }
+.cs-body { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 14px; padding: 16px 28px 20px; overflow: hidden; }
 .cs-body.is-scroll { overflow-y: auto; overscroll-behavior: contain; }
 
-.cs-tabs { display: flex; gap: 4px; border: 0; align-items: baseline; }
-.cs-tab { height: auto; padding: 0 2px; border: 0; border-bottom: 0; margin: 0; border-radius: 0; background: transparent; color: var(--cs-text-3); font-size: 14px; line-height: 28px; cursor: pointer; }
-.cs-tab:hover { color: var(--cs-text); background: transparent; }
-.cs-tab.is-active { color: var(--cs-text); font-weight: 600; box-shadow: inset 0 -2px 0 var(--cs-ink); }
+.cs-tabs { position: absolute; left: 50%; transform: translateX(-50%); display: inline-flex; gap: 3px; align-items: center; padding: 3px; border: 1px solid color-mix(in srgb, var(--cs-border) 78%, transparent); border-radius: 999px; background: color-mix(in srgb, var(--cs-paper) 72%, transparent); box-shadow: inset 0 1px 0 rgb(255 255 255 / 6%), 0 8px 24px rgb(0 0 0 / 14%); backdrop-filter: blur(14px); }
+.cs-tab { flex: 0 0 78px; width: 78px; height: 32px; padding: 0 8px; border: 0; margin: 0; border-radius: 999px; background: transparent; color: var(--cs-text-2); font-size: 13px; line-height: 32px; text-align: center; cursor: pointer; transition: background 140ms ease, color 140ms ease, box-shadow 140ms ease; }
+.cs-tab:hover { color: var(--cs-text); background: color-mix(in srgb, var(--cs-hover) 72%, transparent); }
+.cs-tab.is-active { color: var(--cs-on-accent); font-weight: 600; background: var(--cs-accent); box-shadow: 0 3px 10px color-mix(in srgb, var(--cs-accent) 30%, transparent); }
 
 .cs-stats { display: flex; align-items: stretch; border: 0.5px solid var(--cs-border); border-radius: var(--cs-radius-lg); background: var(--cs-fill); overflow: hidden; }
 .cs-stat { flex: 1; min-width: 0; padding: 10px 16px; border-left: 0.5px solid var(--cs-border); }
@@ -120,14 +125,17 @@ window.__ModuleLoader__.load({
 .cs-stat-label { display: block; font-size: 11px; line-height: 16px; color: var(--cs-text-3); }
 .cs-stat-value { display: block; margin-top: 2px; font-size: 18px; line-height: 24px; font-weight: 600; font-variant-numeric: tabular-nums; }
 
-.cs-stack { display: flex; flex-direction: column; gap: 12px; }
+.cs-stack { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .cs-body > .cs-stack { flex: 1 1 auto; min-height: 0; }
+.cs-stack > .cs-review, .cs-stack > .cs-films, .cs-stack > .cs-detail { flex: 0 0 auto; }
 .cs-stat-inline { display: inline-flex; align-items: baseline; gap: 4px; font-size: 12px; color: var(--cs-text-3); }
 .cs-stat-inline strong { color: var(--cs-text); font-weight: 600; font-variant-numeric: tabular-nums; }
 
-.cs-prompt { display: flex; flex-direction: column; gap: 12px; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; position: static; }
-.cs-prompt-input { width: 100%; min-height: 72px; max-height: 160px; padding: 0; border: 0; resize: none; background: transparent; color: inherit; font: inherit; font-size: 16px; line-height: 1.55; }
-.cs-prompt-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.cs-prompt { display: flex; flex-direction: column; gap: 12px; padding: 14px; border: 1px solid var(--cs-border); border-radius: var(--cs-radius-lg); background: var(--cs-fill); box-shadow: 0 8px 24px color-mix(in srgb, #071326 9%, transparent); position: relative; }
+.cs-prompt-input { width: 100%; min-height: 78px; max-height: 180px; padding: 2px 2px 0; border: 0; resize: vertical; background: transparent; color: var(--cs-text); font: inherit; font-size: 16px; line-height: 1.55; }
+.cs-prompt-input::placeholder { color: var(--cs-text-3); }
+.cs-prompt-input:focus { outline: none; }
+.cs-prompt-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-top: 10px; border-top: 1px solid var(--cs-border); }
 .cs-prompt-bar .cs-statusline { flex: 0 1 auto; min-width: 0; }
 .cs-refs { display: flex; gap: 8px; flex-wrap: wrap; }
 .cs-ref { position: relative; width: 48px; height: 48px; }
@@ -151,45 +159,50 @@ window.__ModuleLoader__.load({
 .cs-log-mark.is-wait { color: var(--cs-warn); }
 .cs-chip { height: 36px; padding: 0 12px; border: 1px solid var(--cs-border-strong); border-radius: 2px; background: transparent; color: var(--cs-text-2); font-size: 13px; cursor: pointer; }
 .cs-chip:hover { background: var(--cs-hover); color: var(--cs-text); }
-.cs-chip.is-active { border-color: var(--cs-ink); color: #fff; background: var(--cs-ink); }
+.cs-chip.is-active { border-color: var(--cs-accent); color: var(--cs-on-accent); background: var(--cs-accent); }
 
-.cs-studio { display: flex; flex-direction: column; gap: 12px; flex: 1 1 auto; min-height: 0; }
+.cs-studio { display: flex; flex-direction: column; gap: 14px; flex: 1 1 auto; min-height: 0; }
 .cs-studio-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.cs-well { flex: 1 1 auto; min-height: 0; overflow: auto; background: var(--cs-well); border-radius: 2px; padding: 8px 0 0; }
-.cs-gates { display: grid; grid-template-columns: repeat(4, 128px); gap: 12px; align-content: start; }
-.cs-gates.is-wide { grid-template-columns: repeat(4, 200px); }
-.cs-gates.is-square { grid-template-columns: repeat(4, 128px); }
-.cs-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 10px; align-content: start; }
+.cs-well { flex: 1 1 auto; min-height: 0; overflow: auto; background: var(--cs-well); border: 1px solid var(--cs-border); border-radius: var(--cs-radius-lg); padding: 18px; box-shadow: inset 0 1px 0 color-mix(in srgb, #ffffff 5%, transparent); }
+.cs-empty-studio { min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 20px; text-align: center; }
+.cs-empty-mark { display: grid; place-items: center; width: 42px; height: 42px; border: 1px solid color-mix(in srgb, var(--cs-accent) 45%, transparent); border-radius: 13px; color: var(--cs-accent); background: color-mix(in srgb, var(--cs-accent) 12%, transparent); font-size: 22px; }
+.cs-empty-title { font-size: 15px; font-weight: 600; color: var(--cs-text); }
+.cs-gates { display: grid; grid-template-columns: repeat(4, minmax(110px, 128px)); justify-content: center; gap: 12px; align-content: start; margin-top: 8px; }
+.cs-gates.is-wide { grid-template-columns: repeat(4, minmax(160px, 200px)); }
+.cs-gates.is-square { grid-template-columns: repeat(4, minmax(110px, 128px)); }
+.cs-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 12px; align-content: start; }
 .cs-well-copy { grid-column: 1 / -1; margin: 2px 0 0; color: var(--cs-text-2); font-size: 13px; line-height: 1.5; }
-.cs-gate { aspect-ratio: 9 / 16; border: 1px dashed color-mix(in srgb, var(--cs-ink) 28%, transparent); background: color-mix(in srgb, var(--cs-ink) 4%, transparent); border-radius: 2px; }
-.cs-shot { position: relative; border-radius: 2px; overflow: hidden; background: #141414; aspect-ratio: 9 / 16; border: 1px solid color-mix(in srgb, var(--cs-ink) 20%, transparent); cursor: pointer; }
+.cs-gate { aspect-ratio: 9 / 16; border: 1px dashed color-mix(in srgb, var(--cs-accent) 30%, var(--cs-border)); background: color-mix(in srgb, var(--cs-accent) 5%, var(--cs-fill)); border-radius: 9px; }
+.cs-shot { position: relative; border-radius: 10px; overflow: hidden; background: var(--cs-media-bg); aspect-ratio: 9 / 16; border: 1px solid var(--cs-border-strong); cursor: pointer; }
 .cs-shot.is-wide, .cs-gate.is-wide { aspect-ratio: 16 / 9; }
 .cs-shot.is-square, .cs-gate.is-square { aspect-ratio: 1 / 1; }
-.cs-shot.is-on { box-shadow: inset 0 0 0 2px var(--cs-ink); }
-.cs-shot video { width: 100%; height: 100%; object-fit: cover; display: block; background: #141414; pointer-events: none; }
-.cs-shot-ph { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #bbb; font-size: 13px; padding: 12px; text-align: center; }
-.cs-shot-check { position: absolute; top: 8px; left: 8px; width: 16px; height: 16px; margin: 0; appearance: none; border: 1px solid #fff; background: transparent; border-radius: 2px; }
-.cs-shot-check:checked { background: #fff; }
+.cs-shot.is-on { box-shadow: inset 0 0 0 2px var(--cs-accent), 0 0 0 3px color-mix(in srgb, var(--cs-accent) 18%, transparent); }
+.cs-shot video { width: 100%; height: 100%; object-fit: cover; display: block; background: var(--cs-media-bg); pointer-events: none; }
+.cs-shot-ph { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--cs-text-2); font-size: 13px; padding: 12px; text-align: center; }
+.cs-shot-check { position: absolute; top: 9px; left: 9px; width: 17px; height: 17px; margin: 0; appearance: none; border: 1px solid color-mix(in srgb, #ffffff 80%, var(--cs-accent)); background: rgb(0 0 0 / 24%); border-radius: 5px; }
+.cs-shot-check:checked { background: var(--cs-accent); border-color: var(--cs-accent); box-shadow: inset 0 0 0 3px var(--cs-media-bg); }
 .cs-shot-act { position: absolute; left: 8px; right: 8px; bottom: 8px; display: flex; gap: 6px; }
-.cs-shot-act .cs-btn { height: 28px; padding: 0 10px; font-size: 12px; background: #fff; color: #141414; border: 0; border-radius: 2px; }
-.cs-shot-x { position: absolute; top: 6px; right: 6px; z-index: 2; width: 24px; height: 24px; border: 0; border-radius: 2px; background: rgb(0 0 0 / 55%); color: #fff; font-size: 16px; line-height: 1; cursor: pointer; }
-.cs-shot-time { position: absolute; right: 8px; bottom: 40px; font-size: 11px; color: #fff; text-shadow: 0 1px 2px #000; }
-.cs-preview { position: fixed; inset: 0; z-index: 1200; background: rgb(0 0 0 / 72%); display: flex; align-items: center; justify-content: center; padding: 24px; }
-.cs-preview-box { width: min(420px, 92vw); display: flex; flex-direction: column; gap: 10px; }
-.cs-preview-box video { width: 100%; max-height: 78vh; background: #000; pointer-events: auto; }
-.cs-preview-cap { margin: 0; color: #fff; font-size: 13px; line-height: 1.5; }
+.cs-shot-act .cs-btn { height: 28px; padding: 0 10px; font-size: 12px; background: rgb(8 16 30 / 76%); color: #fff; border: 1px solid rgb(255 255 255 / 22%); border-radius: 7px; backdrop-filter: blur(8px); }
+.cs-shot-act .cs-btn:hover:not(:disabled) { background: var(--cs-accent); border-color: var(--cs-accent); }
+.cs-shot-x { position: absolute; top: 7px; right: 7px; z-index: 2; width: 26px; height: 26px; border: 1px solid rgb(255 255 255 / 18%); border-radius: 7px; background: rgb(8 16 30 / 68%); color: #fff; font-size: 16px; line-height: 1; cursor: pointer; backdrop-filter: blur(8px); }
+.cs-shot-time { position: absolute; right: 9px; bottom: 43px; padding: 2px 6px; border-radius: 5px; background: rgb(8 16 30 / 68%); font-size: 11px; color: #fff; text-shadow: 0 1px 2px #000; }
+.cs-preview { position: fixed; inset: 0; z-index: 1200; background: rgb(3 8 18 / 78%); display: flex; align-items: center; justify-content: center; padding: 24px; backdrop-filter: blur(8px); }
+.cs-preview-box { width: min(440px, 92vw); display: flex; flex-direction: column; gap: 10px; padding: 14px; border: 1px solid var(--cs-border-strong); border-radius: var(--cs-radius-lg); background: var(--cs-paper); box-shadow: 0 20px 60px rgb(0 0 0 / 38%); }
+.cs-preview-box video { width: 100%; max-height: 78vh; border-radius: 8px; background: var(--cs-media-bg); pointer-events: auto; }
+.cs-preview-cap { margin: 0; color: var(--cs-text-2); font-size: 13px; line-height: 1.5; }
 .cs-preview-bar { display: flex; gap: 8px; }
-.cs-seg { display: inline-flex; height: 36px; border: 1px solid var(--cs-ink); border-radius: 2px; overflow: hidden; }
-.cs-seg-btn { height: 36px; padding: 0 12px; border: 0; border-right: 1px solid var(--cs-ink); border-radius: 0; background: transparent; color: var(--cs-ink); font-size: 13px; cursor: pointer; }
+.cs-seg { display: inline-flex; height: 38px; padding: 3px; border: 1px solid var(--cs-border); border-radius: 10px; overflow: hidden; background: var(--cs-fill-2); }
+.cs-seg-btn { height: 30px; padding: 0 12px; border: 0; border-radius: 7px; background: transparent; color: var(--cs-text-2); font-size: 13px; cursor: pointer; transition: background 140ms ease, color 140ms ease; }
+.cs-seg-btn:hover { color: var(--cs-text); background: var(--cs-hover); }
 .cs-seg-btn:last-child { border-right: 0; }
-.cs-seg-btn.is-on { background: var(--cs-ink); color: #fff; }
-.cs-dock { flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; padding: 12px 0 4px; border: 0; border-top: 1px solid var(--cs-border-strong); border-radius: 0; background: transparent; }
+.cs-seg-btn.is-on { background: var(--cs-accent); color: var(--cs-on-accent); box-shadow: 0 2px 6px color-mix(in srgb, var(--cs-accent) 22%, transparent); }
+.cs-dock { flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; padding: 13px 14px 14px; border: 1px solid var(--cs-border); border-radius: var(--cs-radius-lg); background: var(--cs-paper); box-shadow: 0 10px 28px color-mix(in srgb, #071326 10%, transparent); }
 .cs-dock-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .cs-dur { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--cs-text-2); }
-.cs-dur-input { width: 72px; height: 36px; padding: 0 8px; border: 1px solid var(--cs-ink); border-radius: 2px; background: transparent; color: inherit; font: inherit; font-size: 13px; }
-.cs-go { display: inline-flex; align-items: center; justify-content: center; height: 36px; min-width: 88px; padding: 0 20px; border: 0; border-radius: 2px; background: var(--cs-ink); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; }
-.cs-go:hover:not(:disabled) { background: color-mix(in srgb, var(--cs-ink) 88%, #fff); }
-.cs-go:disabled { opacity: 1; }
+.cs-dur-input { width: 72px; height: 36px; padding: 0 8px; border: 1px solid var(--cs-border-strong); border-radius: 8px; background: var(--cs-fill-2); color: inherit; font: inherit; font-size: 13px; }
+.cs-go { display: inline-flex; align-items: center; justify-content: center; height: 38px; min-width: 96px; margin-left: auto; padding: 0 20px; border: 0; border-radius: 9px; background: var(--cs-accent); color: var(--cs-on-accent); font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 6px 16px color-mix(in srgb, var(--cs-accent) 24%, transparent); transition: background 140ms ease, transform 140ms ease, opacity 140ms ease; }
+.cs-go:hover:not(:disabled) { background: var(--cs-accent-strong); transform: translateY(-1px); }
+.cs-go:disabled { opacity: 0.48; cursor: not-allowed; box-shadow: none; }
 .cs-films { flex-shrink: 0; display: flex; flex-direction: column; gap: 0; border-top: 1px solid var(--cs-border); margin-top: 8px; padding-top: 8px; }
 
 .cs-thread { display: flex; flex-direction: column; gap: 10px; }
@@ -201,20 +214,100 @@ window.__ModuleLoader__.load({
 .cs-plan-fact { display: inline-flex; align-items: baseline; gap: 4px; padding: 2px 8px; border-radius: 6px; background: var(--cs-fill-2); color: var(--cs-text-2); font-size: 12px; }
 .cs-plan-fact strong { color: var(--cs-text); font-weight: 600; }
 
-.cs-card { border: 0.5px solid var(--cs-border); border-radius: var(--cs-radius-lg); background: var(--cs-fill); padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.cs-card { border: 1px solid var(--cs-border); border-radius: var(--cs-radius-lg); background: var(--cs-fill); padding: 16px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 6px 20px color-mix(in srgb, #071326 6%, transparent); }
 .cs-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.cs-card-title { font-size: 13px; font-weight: 600; line-height: 20px; }
+.cs-card-title { font-size: 14px; font-weight: 650; line-height: 20px; }
 .cs-card-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.cs-section-title { font-size: 12px; font-weight: 600; color: var(--cs-text-2); line-height: 18px; }
+.cs-section-title { font-size: 12px; font-weight: 650; color: var(--cs-text-2); line-height: 18px; letter-spacing: 0.02em; }
 
-.cs-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 36px; padding: 0 14px; border: 1px solid transparent; border-radius: 2px; background: transparent; color: var(--cs-text); font-size: 13px; line-height: 18px; cursor: pointer; white-space: nowrap; }
-.cs-btn:hover:not(:disabled) { background: var(--cs-hover); }
-.cs-btn-primary { background: var(--cs-ink); color: #fff; border-color: var(--cs-ink); }
-.cs-btn-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--cs-ink) 88%, #fff); }
-.cs-btn-outline { border-color: var(--cs-ink); background: transparent; }
-.cs-btn-outline:hover:not(:disabled) { background: var(--cs-ink); color: #fff; }
+.cs-batch-console { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.cs-brief-card, .cs-plan-card { display: flex; flex-direction: column; gap: 14px; padding: 18px 20px; border: 1px solid var(--cs-border); border-radius: var(--cs-radius-lg); background: var(--cs-paper); box-shadow: 0 8px 24px color-mix(in srgb, #071326 7%, transparent); }
+.cs-brief-card { background: linear-gradient(135deg, color-mix(in srgb, var(--cs-accent) 12%, var(--cs-paper)), var(--cs-paper) 62%); }
+.cs-brief-head, .cs-plan-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.cs-brief-title, .cs-plan-title { margin: 4px 0 0; color: var(--cs-text); font-size: 19px; line-height: 27px; font-weight: 650; }
+.cs-brief-step { flex: 0 0 auto; padding: 5px 9px; border: 1px solid var(--cs-border); border-radius: 999px; color: var(--cs-text-3); background: var(--cs-fill-2); font-size: 11px; }
+.cs-brief-input { width: 100%; min-height: 88px; resize: vertical; padding: 12px 13px; border: 1px solid var(--cs-border-strong); border-radius: 11px; background: color-mix(in srgb, var(--cs-fill-2) 76%, transparent); color: var(--cs-text); font: inherit; font-size: 15px; line-height: 1.55; }
+.cs-brief-input:focus { outline: none; border-color: var(--cs-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--cs-accent) 18%, transparent); background: var(--cs-fill); }
+.cs-brief-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.cs-assumption-list { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 1px solid var(--cs-border); border-radius: 10px; background: var(--cs-fill-2); }
+.cs-secondary-tool { border: 1px solid var(--cs-border); border-radius: var(--cs-radius-lg); background: color-mix(in srgb, var(--cs-paper) 82%, transparent); }
+.cs-secondary-tool summary { padding: 13px 16px; cursor: pointer; color: var(--cs-text-2); font-size: 13px; font-weight: 600; }
+.cs-secondary-tool > p { margin: 0 16px 12px; }
+.cs-secondary-tool[open] { min-height: 0; overflow: hidden; }
+.cs-secondary-tool > .cs-studio { height: min(660px, calc(100vh - 250px)); min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 0 16px 16px; }
+.cs-secondary-tool > .cs-studio > .cs-well { min-height: 360px; }
+
+.cs-settings { gap: 16px; }
+.cs-settings-overview { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 18px 20px; border: 1px solid var(--cs-border); border-radius: var(--cs-radius-lg); background: linear-gradient(135deg, color-mix(in srgb, var(--cs-accent) 13%, var(--cs-paper)), var(--cs-paper) 58%); }
+.cs-settings-overview-copy { min-width: 0; }
+.cs-kicker { display: block; color: var(--cs-accent); font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.cs-settings-title { margin: 4px 0 5px; color: var(--cs-text); font-size: 18px; line-height: 26px; font-weight: 650; }
+.cs-runtime-status { display: inline-flex; align-items: center; gap: 8px; flex: 0 0 auto; padding: 8px 11px; border: 1px solid var(--cs-border); border-radius: 999px; color: var(--cs-text-2); background: color-mix(in srgb, var(--cs-fill-2) 82%, transparent); font-size: 12px; white-space: nowrap; }
+.cs-runtime-status.is-ok { border-color: color-mix(in srgb, var(--cs-success) 45%, var(--cs-border)); }
+.cs-runtime-status.is-bad { border-color: color-mix(in srgb, var(--cs-danger) 55%, var(--cs-border)); }
+.cs-runtime-dot { width: 7px; height: 7px; border-radius: 999px; background: var(--cs-success); box-shadow: 0 0 0 3px color-mix(in srgb, var(--cs-success) 16%, transparent); }
+.cs-runtime-status.is-bad .cs-runtime-dot { background: var(--cs-danger); box-shadow: 0 0 0 3px color-mix(in srgb, var(--cs-danger) 16%, transparent); }
+.cs-runtime-meta { color: var(--cs-text-3); }
+.cs-settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.cs-role-card { display: flex; min-width: 0; flex-direction: column; gap: 14px; padding: 16px; border: 1px solid var(--cs-border); border-radius: var(--cs-radius-lg); background: var(--cs-paper); box-shadow: 0 6px 20px color-mix(in srgb, #071326 6%, transparent); }
+.cs-role-card.is-required { border-top: 2px solid color-mix(in srgb, var(--cs-accent) 62%, var(--cs-border)); }
+.cs-role-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.cs-role-heading { min-width: 0; }
+.cs-role-title-line { display: flex; align-items: center; gap: 8px; }
+.cs-role-title { margin: 0; font-size: 16px; line-height: 22px; font-weight: 650; }
+.cs-role-badge { display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: 999px; color: var(--cs-text-3); background: var(--cs-fill-2); font-size: 11px; }
+.cs-role-badge.is-required { color: var(--cs-accent); background: color-mix(in srgb, var(--cs-accent) 12%, transparent); }
+.cs-role-count { flex: 0 0 auto; color: var(--cs-text-3); font-size: 12px; }
+.cs-role-empty { min-height: 48px; display: flex; align-items: center; padding: 10px 12px; border: 1px dashed var(--cs-border-strong); border-radius: 9px; color: var(--cs-text-3); font-size: 12px; line-height: 18px; }
+.cs-role-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding-top: 2px; }
+.cs-provider-list { display: flex; flex-direction: column; gap: 8px; }
+.cs-provider-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 16px; min-width: 0; padding: 10px 11px; border: 1px solid var(--cs-border); border-radius: 10px; background: var(--cs-fill-2); }
+.cs-provider-main { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.cs-provider-copy { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.cs-provider-title-line { display: flex; align-items: center; gap: 6px; min-width: 0; flex-wrap: wrap; }
+.cs-provider-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+.cs-provider-dot { width: 7px; height: 7px; flex: 0 0 7px; border-radius: 999px; background: var(--cs-text-3); }
+.cs-provider-dot.is-on { background: var(--cs-success); box-shadow: 0 0 0 3px color-mix(in srgb, var(--cs-success) 14%, transparent); }
+.cs-provider-actions { display: flex; align-items: center; gap: 5px; flex: 0 0 auto; flex-wrap: nowrap; justify-content: flex-end; }
+.cs-provider-toggle { display: inline-flex; align-items: center; gap: 5px; height: 30px; padding: 0 7px; border: 1px solid var(--cs-border); border-radius: 8px; color: var(--cs-text-3); font-size: 11px; cursor: pointer; white-space: nowrap; }
+.cs-provider-toggle:has(input:checked) { color: var(--cs-success); border-color: color-mix(in srgb, var(--cs-success) 42%, var(--cs-border)); background: color-mix(in srgb, var(--cs-success) 8%, transparent); }
+.cs-provider-toggle input { width: 14px; height: 14px; margin: 0; accent-color: var(--cs-success); }
+.cs-icon-btn { display: inline-grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 1px solid var(--cs-border); border-radius: 8px; background: transparent; color: var(--cs-text-2); cursor: pointer; transition: background 140ms ease, border-color 140ms ease, color 140ms ease, transform 140ms ease; }
+.cs-icon-btn svg { width: 16px; height: 16px; }
+.cs-icon-btn:hover:not(:disabled) { color: var(--cs-accent); border-color: color-mix(in srgb, var(--cs-accent) 55%, var(--cs-border)); background: color-mix(in srgb, var(--cs-accent) 10%, transparent); transform: translateY(-1px); }
+.cs-icon-btn.is-danger { color: var(--cs-danger); }
+.cs-icon-btn.is-danger:hover:not(:disabled) { border-color: color-mix(in srgb, var(--cs-danger) 55%, var(--cs-border)); background: color-mix(in srgb, var(--cs-danger) 10%, transparent); }
+.cs-config-backdrop { position: fixed; inset: 0; z-index: 1300; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgb(3 8 18 / 66%); backdrop-filter: blur(10px); }
+.cs-config-editor { width: min(760px, calc(100vw - 48px)); max-height: min(88vh, 760px); display: flex; flex-direction: column; gap: 16px; overflow: auto; padding: 20px 22px 18px; border: 1px solid color-mix(in srgb, var(--cs-accent) 48%, var(--cs-border)); border-radius: 16px; background: var(--cs-paper); box-shadow: 0 24px 80px rgb(0 0 0 / 42%); }
+.cs-config-editor-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 14px; border-bottom: 1px solid var(--cs-border); }
+.cs-config-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 12px; border: 1px solid var(--cs-border); border-radius: 10px; background: var(--cs-fill-2); }
+.cs-publish-targets { display: flex; flex-direction: column; gap: 8px; padding: 11px 12px; border: 1px solid var(--cs-border); border-radius: 10px; background: var(--cs-fill-2); }
+.cs-publish-target-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.cs-publish-target-list { display: flex; flex-wrap: wrap; gap: 7px; }
+.cs-config-mode { max-width: 420px; }
+.cs-config-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 16px; }
+.cs-advanced { border-top: 1px solid var(--cs-border); padding-top: 12px; color: var(--cs-text-2); }
+.cs-advanced summary { cursor: pointer; color: var(--cs-text-2); font-size: 12px; }
+.cs-advanced p { margin: 8px 0 0; }
+.cs-result-card { border-color: color-mix(in srgb, var(--cs-accent) 35%, var(--cs-border)); }
+.cs-inline-result { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1px solid var(--cs-border); border-radius: 10px; background: var(--cs-fill-2); }
+.cs-inline-result.is-ok { border-color: color-mix(in srgb, var(--cs-success) 42%, var(--cs-border)); }
+.cs-inline-result.is-bad { border-color: color-mix(in srgb, var(--cs-danger) 48%, var(--cs-border)); }
+.cs-inline-result-copy { display: flex; min-width: 0; flex-direction: column; gap: 2px; color: var(--cs-text-2); font-size: 12px; line-height: 18px; }
+.cs-inline-result-copy strong { color: var(--cs-text); font-size: 13px; }
+.cs-result-toast { position: fixed; right: 24px; bottom: 24px; z-index: 1400; display: flex; align-items: flex-start; gap: 10px; width: min(360px, calc(100vw - 48px)); padding: 12px 14px; border: 1px solid var(--cs-border-strong); border-radius: 12px; background: var(--cs-paper); box-shadow: 0 18px 50px rgb(0 0 0 / 36%); }
+.cs-result-toast.is-ok { border-color: color-mix(in srgb, var(--cs-success) 48%, var(--cs-border)); }
+.cs-result-toast.is-bad { border-color: color-mix(in srgb, var(--cs-danger) 52%, var(--cs-border)); }
+
+.cs-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 36px; padding: 0 14px; border: 1px solid var(--cs-border); border-radius: 9px; background: var(--cs-fill); color: var(--cs-text); font-size: 13px; line-height: 18px; cursor: pointer; white-space: nowrap; transition: background 140ms ease, border-color 140ms ease, color 140ms ease, transform 140ms ease; }
+.cs-btn:hover:not(:disabled) { background: var(--cs-hover); border-color: var(--cs-border-strong); transform: translateY(-1px); }
+.cs-btn:focus-visible, .cs-tab:focus-visible, .cs-seg-btn:focus-visible { outline: 2px solid color-mix(in srgb, var(--cs-accent) 70%, transparent); outline-offset: 2px; }
+.cs-btn-primary { background: var(--cs-accent); color: var(--cs-on-accent); border-color: var(--cs-accent); }
+.cs-btn-primary:hover:not(:disabled) { background: var(--cs-accent-strong); border-color: var(--cs-accent-strong); }
+.cs-btn-outline { border-color: color-mix(in srgb, var(--cs-accent) 55%, var(--cs-border)); background: transparent; color: var(--cs-accent); }
+.cs-btn-outline:hover:not(:disabled) { background: color-mix(in srgb, var(--cs-accent) 12%, transparent); color: var(--cs-accent); }
 .cs-btn-ghost { background: transparent; color: var(--cs-text-2); padding: 0; height: auto; border: 0; font-size: 13px; }
-.cs-btn-ghost:hover:not(:disabled) { background: transparent; color: var(--cs-text); }
+.cs-btn-ghost:hover:not(:disabled) { background: transparent; color: var(--cs-text); border-color: transparent; transform: none; }
 .cs-btn-sm { height: 32px; padding: 0 12px; font-size: 13px; }
 .cs-btn-danger { color: var(--cs-danger); }
 .cs-btn-danger:hover:not(:disabled) { background: color-mix(in srgb, var(--cs-danger) 8%, transparent); }
@@ -224,23 +317,25 @@ window.__ModuleLoader__.load({
 .cs-tag-warn { background: color-mix(in srgb, var(--cs-warn) 12%, transparent); color: var(--cs-warn); }
 .cs-tag-bad { background: color-mix(in srgb, var(--cs-danger) 10%, transparent); color: var(--cs-danger); }
 .cs-tag-info { background: color-mix(in srgb, var(--cs-accent) 10%, transparent); color: var(--cs-accent); }
-.cs-tag-neutral { background: var(--dsw-alias-bg-module-platform, var(--cs-fill-2)); color: var(--cs-text-2); }
+.cs-tag-neutral { background: var(--cs-fill-2); color: var(--cs-text-2); }
 .cs-tag-outline { border: 0.5px solid var(--cs-border-strong); color: var(--cs-text-3); }
 
 .cs-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .cs-label { font-size: 12px; line-height: 18px; color: var(--cs-text-2); }
 .cs-hint { font-size: 12px; line-height: 18px; color: var(--cs-text-3); }
-.cs-input, .cs-select, .cs-textarea { width: 100%; height: 32px; padding: 0 10px; border: 0.5px solid var(--cs-border-strong); border-radius: var(--cs-radius); background: var(--cs-fill); color: var(--cs-text); font: inherit; font-size: 13px; line-height: 20px; }
+.cs-input, .cs-select, .cs-textarea { width: 100%; height: 36px; padding: 0 11px; border: 1px solid var(--cs-border); border-radius: 9px; background: var(--cs-fill-2); color: var(--cs-text); font: inherit; font-size: 13px; line-height: 20px; transition: border-color 140ms ease, box-shadow 140ms ease, background 140ms ease; }
+.cs-input:hover, .cs-select:hover, .cs-textarea:hover { border-color: var(--cs-border-strong); }
+.cs-input:focus, .cs-select:focus, .cs-textarea:focus { outline: none; border-color: var(--cs-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--cs-accent) 18%, transparent); background: var(--cs-fill); }
 .cs-select { padding-right: 26px; }
-.cs-textarea { height: auto; min-height: 64px; padding: 8px 10px; line-height: 1.5; resize: vertical; }
-.cs-form-section { display: flex; flex-direction: column; gap: 10px; padding: 14px 0; border-top: 0.5px solid var(--cs-border); }
+.cs-textarea { height: auto; min-height: 72px; padding: 9px 11px; line-height: 1.5; resize: vertical; }
+.cs-form-section { display: flex; flex-direction: column; gap: 10px; padding: 14px 0; border-top: 1px solid var(--cs-border); }
 .cs-form-section:first-child { padding-top: 0; border-top: 0; }
 .cs-form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px 16px; }
 .cs-span-full { grid-column: 1 / -1; }
-.cs-form-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding-top: 12px; border-top: 0.5px solid var(--cs-border); }
+.cs-form-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding-top: 12px; border-top: 1px solid var(--cs-border); }
 .cs-form-actions .cs-hint { margin-left: auto; }
 .cs-check { display: inline-flex; align-items: center; gap: 8px; height: 36px; font-size: 13px; cursor: pointer; }
-.cs-check input { width: 16px; height: 16px; margin: 0; accent-color: var(--cs-ink); }
+.cs-check input { width: 16px; height: 16px; margin: 0; accent-color: var(--cs-accent); }
 
 .cs-alert { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 0.5px solid; border-radius: var(--cs-radius); font-size: 12px; line-height: 18px; }
 .cs-alert-warning { border-color: color-mix(in srgb, var(--cs-warn) 35%, transparent); background: color-mix(in srgb, var(--cs-warn) 8%, transparent); }
@@ -280,20 +375,20 @@ window.__ModuleLoader__.load({
 .cs-cost { display: flex; flex-direction: column; gap: 6px; }
 .cs-cost-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--cs-text-2); }
 
-.cs-review { display: flex; flex-direction: column; min-height: 0; border: 0.5px solid var(--cs-border); border-radius: var(--cs-radius-lg); background: var(--cs-fill); }
-.cs-review-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 0.5px solid var(--cs-border); }
-.cs-review-desk { display: grid; grid-template-columns: minmax(220px, 300px) minmax(0, 1fr); min-height: 0; }
-.cs-review-stage { display: flex; align-items: center; justify-content: center; padding: 16px; background: #141414; min-height: 0; }
-.cs-review-phone { width: min(100%, 260px); max-height: min(58vh, 520px); background: #000; }
-.cs-review-phone video { width: 100%; max-height: min(58vh, 520px); display: block; background: #000; object-fit: contain; }
-.cs-review-side { display: flex; flex-direction: column; gap: 12px; min-width: 0; padding: 16px; border-left: 0.5px solid var(--cs-border); }
+.cs-review { display: flex; flex: 0 0 auto; flex-direction: column; min-height: fit-content; border: 1px solid var(--cs-border); border-radius: var(--cs-radius-lg); background: var(--cs-fill); overflow: hidden; }
+.cs-review-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 16px; border-bottom: 1px solid var(--cs-border); }
+.cs-review-desk { display: grid; grid-template-columns: minmax(220px, 300px) minmax(0, 1fr); min-height: 0; align-items: stretch; }
+.cs-review-stage { display: flex; align-items: center; justify-content: center; padding: 16px; background: var(--cs-media-bg); min-height: 360px; }
+.cs-review-phone { width: min(100%, 260px); height: min(58vh, 520px); aspect-ratio: 9 / 16; display: flex; align-items: center; background: var(--cs-media-bg); border-radius: 10px; overflow: hidden; }
+.cs-review-phone video { width: 100%; height: 100%; max-height: none; display: block; background: var(--cs-media-bg); object-fit: contain; }
+.cs-review-side { display: flex; flex-direction: column; gap: 12px; min-width: 0; min-height: 0; padding: 16px; border-left: 1px solid var(--cs-border); }
 .cs-cover-strip { display: flex; align-items: flex-end; gap: 8px; flex-wrap: wrap; }
-.cs-cover-thumb { padding: 0; border: 0.5px solid var(--cs-border-strong); border-radius: 2px; background: #111; cursor: pointer; overflow: hidden; line-height: 0; }
+.cs-cover-thumb { padding: 0; border: 1px solid var(--cs-border-strong); border-radius: 8px; background: var(--cs-media-bg); cursor: pointer; overflow: hidden; line-height: 0; }
 .cs-cover-thumb:hover { box-shadow: inset 0 0 0 1px var(--cs-ink); }
 .cs-cover-thumb img { display: block; height: 88px; width: auto; object-fit: cover; }
 .cs-cover-thumb.is-wide img { height: 52px; }
 .cs-cover-thumb.is-sq img { width: 52px; height: 52px; }
-.cs-review-decide { display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; border-top: 0.5px solid var(--cs-border); background: var(--cs-fill); }
+.cs-review-decide { display: flex; flex: 0 0 auto; flex-direction: column; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--cs-border); background: var(--cs-fill); }
 .cs-preview-box.is-cover { width: auto; max-width: 92vw; }
 .cs-preview-box.is-cover img { display: block; max-width: 92vw; max-height: 82vh; background: #000; }
 .cs-pre { margin: 0; padding: 10px; border-radius: var(--cs-radius); border: 0.5px solid var(--cs-border); max-height: 220px; overflow: auto; font-size: 11px; line-height: 1.6; white-space: pre-wrap; word-break: break-all; background: var(--cs-fill-2); }
@@ -305,8 +400,8 @@ window.__ModuleLoader__.load({
 .cs-table th { border-top: 0; color: var(--cs-text-3); font-weight: 500; }
 .cs-dot { width: 6px; height: 6px; border-radius: 999px; background: currentColor; flex: 0 0 6px; }
 
-.cs-modal-backdrop { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(0, 0, 0, 0.32); }
-.cs-modal { width: min(640px, 100%); max-height: 80vh; display: flex; flex-direction: column; gap: 12px; padding: 16px; border: 0.5px solid var(--cs-border); border-radius: var(--cs-radius-lg); background: var(--dsw-alias-bg-layer-1, #fff); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18); }
+.cs-modal-backdrop { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgb(3 8 18 / 58%); backdrop-filter: blur(8px); }
+.cs-modal { width: min(640px, 100%); max-height: 80vh; display: flex; flex-direction: column; gap: 12px; padding: 18px; border: 1px solid var(--cs-border-strong); border-radius: var(--cs-radius-lg); background: var(--cs-paper); color: var(--cs-text); box-shadow: 0 20px 60px rgb(0 0 0 / 32%); }
 .cs-modal-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .cs-crumbs { display: flex; flex-wrap: wrap; gap: 6px; }
 .cs-dir-path { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--cs-text-2); }
@@ -318,16 +413,41 @@ window.__ModuleLoader__.load({
 .cs-modal-actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 8px; border-top: 0.5px solid var(--cs-border); }
 @media (max-width: 820px) {
   .cs-chrome, .cs-body { padding-left: 16px; padding-right: 16px; }
+  .cs-chrome { align-items: flex-start; flex-wrap: wrap; gap: 12px 16px; }
+  .cs-title { font-size: 26px; }
+  .cs-tabs { position: static; left: auto; transform: none; order: 3; width: 100%; max-width: 100%; overflow-x: auto; justify-content: center; }
+  .cs-tab { flex: 0 0 78px; }
   .cs-page-inner { padding: 0; }
   .cs-review-desk, .cs-lanes { grid-template-columns: 1fr; }
   .cs-review-side { border-left: 0; border-top: 0.5px solid var(--cs-border); }
-  .cs-review-phone, .cs-review-phone video { max-height: 42vh; }
+  .cs-review-phone { width: min(100%, 260px); height: 42vh; max-height: 460px; }
+  .cs-review-phone video { max-height: none; }
   .cs-intake { grid-template-columns: 1fr 1fr; }
   .cs-lane + .cs-lane { border-left: 0; border-top: 0.5px solid var(--cs-border); }
   .cs-stats { flex-wrap: wrap; }
   .cs-stat { flex: 1 1 40%; border-left: 0; border-top: 0.5px solid var(--cs-border); }
   .cs-stat:nth-child(-n+2) { border-top: 0; }
   .cs-stat:nth-child(even) { border-left: 0.5px solid var(--cs-border); }
+  .cs-gates, .cs-gates.is-wide, .cs-gates.is-square { grid-template-columns: repeat(2, minmax(100px, 150px)); }
+  .cs-dock-row { align-items: stretch; }
+  .cs-go { margin-left: 0; width: 100%; }
+  .cs-prompt-bar { align-items: flex-start; }
+  .cs-settings-overview { align-items: flex-start; flex-direction: column; }
+  .cs-brief-head, .cs-plan-head { flex-direction: column; }
+  .cs-brief-card, .cs-plan-card { padding: 16px; }
+  .cs-settings-grid { grid-template-columns: 1fr; }
+  .cs-provider-row { grid-template-columns: 1fr; align-items: flex-start; }
+  .cs-provider-actions { width: 100%; justify-content: flex-start; flex-wrap: wrap; }
+  .cs-config-backdrop { padding: 12px; }
+  .cs-config-editor { width: 100%; max-height: 92vh; padding: 16px; border-radius: 14px; }
+  .cs-config-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 480px) {
+  .cs-gates, .cs-gates.is-wide, .cs-gates.is-square { grid-template-columns: repeat(2, minmax(88px, 1fr)); gap: 8px; }
+  .cs-well { padding: 10px; }
+  .cs-dock { padding: 10px; }
+  .cs-seg { width: 100%; }
+  .cs-seg-btn { flex: 1; padding: 0 8px; }
 }
 `
 
@@ -423,11 +543,12 @@ window.__ModuleLoader__.load({
     /* ------------------------------------------------------------------ */
     /* 批次                                                            */
     /* ------------------------------------------------------------------ */
-    function NewBatchForm({ onCreated, groups, health, services, platforms = [], initial = null, onPickDirectory = null }) {
+    function NewBatchForm({ onCreated, groups, health, services, platforms = [], initial = null, onPickDirectory = null, autoStart = false }) {
       const [form, setForm] = useState(() => ({
         title: '', topic: '', count: 5, dirs: '', group: '', targetSec: 26,
         aspectRatio: '9:16', materialMode: 'folder', shotCount: 8, voice: '', transition: 'cut', concurrency: '',
         platform: 'douyin', publishStartAt: '', publishIntervalMinutes: 1440, reviewMode: 'required', costCap: '',
+        publishEnabled: false, publishTargetIds: [],
         ...(initial ? {
           topic: initial.topic || '',
           count: initial.count || 5,
@@ -440,12 +561,19 @@ window.__ModuleLoader__.load({
           publishStartAt: toLocalDateTime(initial.publishStartAt),
           publishIntervalMinutes: initial.publishIntervalMinutes ?? 1440,
           costCap: initial.costCap ? String(initial.costCap) : '',
+          publishEnabled: Boolean(initial.publish?.enabled),
+          publishTargetIds: initial.publish?.targetIntegrationIds || [],
           dirs: initial.dirs || '',
         } : {}),
       }))
       const [busy, setBusy] = useState('')
       const [message, setMessage] = useState(null)
       const [scanned, setScanned] = useState(null)
+      const [publishChannels, setPublishChannels] = useState([])
+
+      useEffect(() => {
+        api('GET', '/postiz/channels').then((data) => setPublishChannels(data.channels || [])).catch(() => setPublishChannels([]))
+      }, [])
 
       const set = (key) => (event) => setForm((current) => ({ ...current, [key]: event.target.value }))
       const platformPreset = useMemo(
@@ -502,14 +630,31 @@ window.__ModuleLoader__.load({
             publishIntervalMinutes: Number(form.publishIntervalMinutes) || 0,
             reviewMode: form.reviewMode,
             costCap: Number(form.costCap) > 0 ? Number(form.costCap) : null,
+            materialsDirs: dirList,
+            publish: {
+              enabled: Boolean(form.publishEnabled && form.publishTargetIds.length > 0),
+              mode: 'scheduled',
+              policy: 'after_approval',
+              targetIntegrationIds: form.publishTargetIds,
+            },
           }
+          const preflight = await api('POST', '/batches/preflight', { count: Number(form.count) || 1, config })
           const result = await api('POST', '/batches', { title: form.title || form.topic, count: Number(form.count) || 1, config })
-          const warnings = result.preflight?.warnings || []
+          if (autoStart) {
+            try {
+              await api('POST', `/batches/${encodeURIComponent(result.batch.id)}/start`)
+            } catch (startError) {
+              setMessage({ ok: false, text: `批次已创建，但启动失败：${startError.message}` })
+              onCreated?.(result.batch)
+              return
+            }
+          }
+          const warnings = [...new Set([...(preflight.preflight?.warnings || []), ...(result.preflight?.warnings || [])])]
           setMessage({
             ok: true,
             text: warnings.length > 0
-              ? `批次已创建：${result.batch.id} —— 注意：${warnings.join('；')}`
-              : `批次已创建：${result.batch.id}`,
+              ? `${autoStart ? '批次已创建并开始生产' : '批次已创建'}：${result.batch.id} —— 注意：${warnings.join('；')}`
+              : `${autoStart ? '批次已创建并开始生产' : '批次已创建'}：${result.batch.id}`,
             warnings,
           })
           onCreated?.(result.batch)
@@ -532,7 +677,7 @@ window.__ModuleLoader__.load({
           h('h3', { className: 'cs-section-title' }, '内容规格'),
           h('div', { className: 'cs-form-grid' },
             field('主题', h('input', {
-              className: 'cs-input', placeholder: '例如：秋日通勤三件套',
+              className: 'cs-input', placeholder: '例如：48V 工商业储能 BMS 的核心优势',
               value: form.topic, onChange: set('topic'),
             }), 'cs-span-full'),
             field('数量', h('input', {
@@ -589,8 +734,37 @@ window.__ModuleLoader__.load({
               className: 'cs-input', type: 'number', min: 0, step: '0.01', placeholder: '不设上限',
               value: form.costCap, onChange: set('costCap'),
             })),
+            h('div', { className: 'cs-publish-targets cs-span-full' },
+              h('div', { className: 'cs-publish-target-head' },
+                h('span', { className: 'cs-label' }, '审核通过后自动发布'),
+                h('label', { className: 'cs-check' },
+                  h('input', {
+                    type: 'checkbox',
+                    checked: form.publishEnabled,
+                    onChange: (event) => setForm((current) => ({ ...current, publishEnabled: event.target.checked })),
+                  }),
+                  '启用',
+                ),
+              ),
+              h('div', { className: 'cs-publish-target-list' },
+                publishChannels.length > 0
+                  ? publishChannels.map((channel) => h('button', {
+                      key: channel.id,
+                      type: 'button',
+                      className: `cs-chip${form.publishTargetIds.includes(channel.id) ? ' is-active' : ''}`,
+                      onClick: () => setForm((current) => ({
+                        ...current,
+                        publishTargetIds: current.publishTargetIds.includes(channel.id)
+                          ? current.publishTargetIds.filter((id) => id !== channel.id)
+                          : [...current.publishTargetIds, channel.id],
+                      })),
+                    }, `${channel.name} · ${channel.identifier}`))
+                  : h('span', { className: 'cs-hint' }, '未发现 Postiz 账号；可先在“待分发”页配置，或留空改为手动发布。'),
+              ),
+              h('span', { className: 'cs-hint' }, '校验通过并审核后按发布起点和间隔自动分发；不选账号则只生成待发布内容。'),
+            ),
             platformPreset
-              ? h('p', { className: 'cs-hint cs-span-full' }, `平台标题上限 ${platformPreset.titleMaxLength} 字，仅提示，不阻断。发布起点与间隔只记录，本期不自动发布。`)
+              ? h('p', { className: 'cs-hint cs-span-full' }, `平台标题上限 ${platformPreset.titleMaxLength} 字，仅提示，不阻断。`)
               : null,
           ),
         ),
@@ -599,7 +773,7 @@ window.__ModuleLoader__.load({
           h('div', { className: 'cs-form-grid' },
             field('素材目录', h('textarea', {
               className: 'cs-textarea cs-span-full',
-              placeholder: '一行一个目录，例如 D:\\素材\\穿搭',
+              placeholder: '一行一个目录，例如 D:\\素材\\BMS工厂视频',
               value: form.dirs, onChange: set('dirs'),
             }), 'cs-span-full'),
           ),
@@ -640,8 +814,8 @@ window.__ModuleLoader__.load({
             className: 'cs-btn cs-btn-primary',
             onClick: create,
             disabled: busy === 'create' || !ready,
-          }, busy === 'create' ? '创建中…' : '创建批次'),
-          h('span', { className: 'cs-hint' }, ready ? '创建后可在总控台启动' : '主题和数量必填'),
+          }, busy === 'create' ? (autoStart ? '创建并启动中…' : '创建中…') : (autoStart ? '创建并开始' : '创建批次')),
+          h('span', { className: 'cs-hint' }, ready ? (autoStart ? '确认后立即下发到生产队列' : '创建后可在审核页启动') : '主题和数量必填'),
         ),
         message
           ? h('div', {
@@ -653,6 +827,127 @@ window.__ModuleLoader__.load({
               ),
             )
           : null,
+      )
+    }
+
+    function BatchConsole({ groups = [], health, services, platforms = [], readiness, onCreated }) {
+      const [brief, setBrief] = useState('')
+      const [parsed, setParsed] = useState(null)
+      const [busy, setBusy] = useState('')
+      const [error, setError] = useState('')
+      const [notice, setNotice] = useState('')
+
+      const parse = async () => {
+        const text = brief.trim()
+        if (!text) {
+          setError('先写一句生产需求')
+          return
+        }
+        setBusy('parse')
+        setError('')
+        setNotice('')
+        try {
+          const result = await api('POST', '/batches/parse', { brief: text })
+          setParsed(result)
+        } catch (parseError) {
+          setError(parseError.message)
+        } finally {
+          setBusy('')
+        }
+      }
+
+      const clearPlan = () => {
+        setParsed(null)
+        setNotice('')
+        setError('')
+      }
+
+      const initial = parsed
+        ? { ...(parsed.config || {}), count: parsed.count || 1, topic: parsed.config?.topic || '' }
+        : null
+
+      return h('div', { className: 'cs-batch-console' },
+        h('section', { className: 'cs-brief-card' },
+          h('div', { className: 'cs-brief-head' },
+            h('div', null,
+              h('span', { className: 'cs-kicker' }, '批量生产'),
+              h('h2', { className: 'cs-brief-title' }, '先说需求，AI 帮你拆成批次'),
+              h('p', { className: 'cs-muted' }, '例如：做 5 条面向海外 B2B 客户的储能 BMS 宣传视频，发 TikTok 和 LinkedIn，每天 18:00 一条。'),
+            ),
+            h('span', { className: 'cs-brief-step' }, parsed ? '02 / 确认计划' : '01 / 描述需求'),
+          ),
+          h('textarea', {
+            className: 'cs-brief-input',
+            id: 'batch-brief',
+            rows: 3,
+            value: brief,
+            placeholder: '描述主题、条数、平台、发布时间和预算。没说的内容会标注默认值。',
+            onChange: (event) => setBrief(event.target.value),
+          }),
+          h('div', { className: 'cs-brief-actions' },
+            h('span', { className: 'cs-hint' }, '支持 TikTok、Instagram、YouTube、LinkedIn 及国内平台；也可以先写主题，再在计划里细调。'),
+            h('button', {
+              className: 'cs-btn cs-btn-primary',
+              disabled: busy === 'parse' || !brief.trim(),
+              onClick: parse,
+            }, busy === 'parse' ? '拆解中…' : '让 AI 拆解'),
+          ),
+          error
+            ? h('div', { className: 'cs-alert cs-alert-danger', role: 'alert' },
+                h(AlertIcon),
+                h('div', { className: 'cs-alert-body' }, h('p', { className: 'cs-alert-text' }, error)),
+              )
+            : null,
+        ),
+        parsed
+          ? h('section', { className: 'cs-plan-card' },
+              h('div', { className: 'cs-plan-head' },
+                h('div', null,
+                  h('span', { className: 'cs-kicker' }, parsed.source === 'llm' ? 'AI 计划' : '本地规则计划'),
+                  h('h2', { className: 'cs-plan-title' }, parsed.plan?.summary || `准备生产 ${parsed.count || 1} 条内容`),
+                ),
+                h('button', { className: 'cs-btn cs-btn-ghost cs-btn-sm', onClick: clearPlan }, '重新描述'),
+              ),
+              (parsed.plan?.warnings || []).length > 0
+                ? h('div', { className: 'cs-alert cs-alert-warning', role: 'status' },
+                    h(AlertIcon),
+                    h('div', { className: 'cs-alert-body' },
+                      (parsed.plan.warnings || []).map((warning) => h('p', { key: warning, className: 'cs-alert-text' }, warning)),
+                    ),
+                  )
+                : null,
+              (parsed.plan?.assumptions || []).length > 0
+                ? h('div', { className: 'cs-assumption-list' },
+                    h('span', { className: 'cs-label' }, '需要确认的默认值'),
+                    h('div', { className: 'cs-plan-facts' },
+                      parsed.plan.assumptions.map((assumption) => h('span', { key: assumption, className: 'cs-plan-fact' }, assumption)),
+                    ),
+                  )
+                : null,
+              h(NewBatchForm, {
+                groups,
+                health,
+                services,
+                platforms,
+                initial,
+                autoStart: true,
+                onCreated: (batch) => {
+                  setNotice(`批次 ${batch.id} 已创建并开始生产`)
+                  onCreated?.(batch)
+                },
+              }),
+              notice
+                ? h('div', { className: 'cs-alert cs-alert-success', role: 'status' },
+                    h('div', { className: 'cs-alert-body' }, h('p', { className: 'cs-alert-text' }, notice)),
+                  )
+                : null,
+            )
+          : null,
+        h('details', { className: 'cs-secondary-tool' },
+          h('summary', null, '视频模型试验台（单次生成，可选）'),
+          h('p', { className: 'cs-hint' }, '这是一次性“提示词 → 异步生成镜头 → 选择镜头成片”，不是持续聊天；批量 BMS 运营请使用上方总控台。'),
+          h(CreateComposer, { readiness, onCreated }),
+        ),
       )
     }
 
@@ -1313,6 +1608,66 @@ window.__ModuleLoader__.load({
       'ark-seedance': 'https://ark.cn-beijing.volces.com/api/v3/contents/generations/tasks',
     }
 
+    const ROLE_CONFIG = {
+      script: {
+        title: '文案',
+        subtitle: '生成标题、口播、标签和剪辑方案',
+        required: true,
+        kinds: ['llm'],
+        preset: 'llm',
+        empty: '还没有文案模型，先接一个 OpenAI 兼容接口。',
+      },
+      voice: {
+        title: '配音',
+        subtitle: '把口播文案合成为带时间轴的音频',
+        required: true,
+        kinds: ['tts'],
+        preset: 'tts',
+        empty: '还没有配音模型，可接百炼兼容接口或 OpenAI Speech。',
+      },
+      video: {
+        title: '视频',
+        subtitle: '生成镜头或调用本地视频工作流',
+        required: true,
+        kinds: ['dashscope-wan', 'comfyui', 'http-generic', 'ark-seedance'],
+        preset: 'wan',
+        empty: '还没有视频模型。云端用万相，本地可选 ComfyUI 或 HTTP。',
+      },
+      image: {
+        title: '生图',
+        subtitle: '生成封面底图；不配置也能用纯色降级',
+        required: false,
+        kinds: ['image'],
+        preset: 'image',
+        empty: '可选。没有生图模型时，封面会使用纯色底图。',
+      },
+    }
+    const PRESET_BY_KIND = Object.fromEntries(Object.entries(PRESETS).map(([key, value]) => [value.kind, key]))
+    const VIDEO_KIND_OPTIONS = [
+      ['dashscope-wan', '百炼万相'],
+      ['comfyui', '本地 ComfyUI'],
+      ['http-generic', '本地 HTTP'],
+      ['ark-seedance', '方舟 Seedance（预留）'],
+    ]
+    const USER_CONFIG_FIELDS = ['id', 'origin', 'baseUrl', 'model', 'modelId', 'apiKey', 'voice', 'workflowRef']
+
+    function blankPreset(key) {
+      const source = PRESETS[key]
+      const next = { ...source, id: '', enabled: true }
+      for (const field of USER_CONFIG_FIELDS) {
+        if (Object.prototype.hasOwnProperty.call(next, field)) next[field] = ''
+      }
+      return next
+    }
+
+    function providerRole(kind) {
+      return Object.entries(ROLE_CONFIG).find(([, role]) => role.kinds.includes(kind))?.[0] || 'video'
+    }
+
+    function providerModeLabel(kind) {
+      return KIND_ZH[kind] || kind || '模型'
+    }
+
     function providerFields(kind) {
       const name = ['id', '名称']
       const key = ['apiKey', 'API Key']
@@ -1325,6 +1680,18 @@ window.__ModuleLoader__.load({
       if (kind === 'http-generic') return [name, url]
       if (kind === 'ark-seedance') return [name, url, ['modelId', '模型'], key]
       return [name, url]
+    }
+
+    function ProviderIcon({ name }) {
+      const common = { viewBox: '0 0 20 20', fill: 'none', stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true }
+      if (name === 'models') return h('svg', common, h('rect', { x: 3, y: 3, width: 14, height: 4, rx: 1 }), h('rect', { x: 3, y: 9, width: 14, height: 4, rx: 1 }), h('rect', { x: 3, y: 15, width: 14, height: 2, rx: 1 }))
+      if (name === 'edit') return h('svg', common, h('path', { d: 'M4 14.8V17h2.2L15.8 7.4l-2.2-2.2L4 14.8Z' }), h('path', { d: 'm12.7 6.1 1.2-1.2a1.6 1.6 0 0 1 2.2 0l.9.9a1.6 1.6 0 0 1 0 2.2l-1.2 1.2' }))
+      if (name === 'delete') return h('svg', common, h('path', { d: 'M4 5.5h12M8 5.5V3.8h4v1.7M6.2 5.5l.6 10.7h6.4l.6-10.7M8.5 8.2v5.5M11.5 8.2v5.5' }))
+      return h('svg', common, h('circle', { cx: 10, cy: 10, r: 6.5 }), h('path', { d: 'm7.2 10 1.8 1.8 3.8-4' }))
+    }
+
+    function ProviderIconButton({ name, label, ...props }) {
+      return h('button', { ...props, className: `cs-icon-btn${props.className ? ` ${props.className}` : ''}`, title: label, 'aria-label': label }, h(ProviderIcon, { name }))
     }
 
     function ProvidersPage() {
@@ -1349,7 +1716,7 @@ window.__ModuleLoader__.load({
         setResult(null)
       }
       const addPreset = (key) => {
-        setDraft({ ...PRESETS[key], _existing: false })
+        setDraft({ ...blankPreset(key), _existing: false })
         setModels([])
         setResult(null)
       }
@@ -1405,8 +1772,8 @@ window.__ModuleLoader__.load({
           ...rest,
           apiKey: rest.apiKey || (hasApiKey ? '__stored__' : ''),
         }
-        if (!/^[A-Za-z0-9._-]{1,64}$/.test(payload.id || '')) {
-          setResult({ ok: false, title: '名称不合法', detail: '字母、数字、点、下划线、短横线，≤64' })
+        if (!/^[\p{L}\p{N}._-]{1,64}$/u.test(payload.id || '')) {
+          setResult({ ok: false, title: '配置名称不合法', detail: '支持中文、字母、数字、点、下划线和短横线，最多 64 个字符' })
           return
         }
         setBusy('save')
@@ -1415,7 +1782,8 @@ window.__ModuleLoader__.load({
           setDraft(null)
           setModels([])
           await load()
-          setResult({ ok: true, title: '已保存', detail: payload.id })
+          setResult({ ok: true, title: '已保存', detail: `${payload.id} 已加入生产配置` })
+          setTimeout(() => setResult(null), 4500)
         } catch (e) {
           setResult({ ok: false, title: '保存失败', detail: e.message })
         } finally {
@@ -1438,144 +1806,223 @@ window.__ModuleLoader__.load({
         await api('DELETE', `/providers/${encodeURIComponent(id)}`).catch(() => {})
         await load()
       }
+      const toggleEnabled = async (provider) => {
+        setBusy(`toggle:${provider.id}`)
+        try {
+          const payload = {
+            ...provider,
+            enabled: provider.enabled === false,
+            apiKey: provider.hasApiKey ? '__stored__' : '',
+          }
+          delete payload.hasApiKey
+          await api('PUT', `/providers/${encodeURIComponent(provider.id)}`, payload)
+          await load()
+          setResult({ ok: true, title: payload.enabled ? '配置已启用' : '配置已停用', detail: provider.id })
+          setTimeout(() => setResult(null), 3000)
+        } catch (error) {
+          setResult({ ok: false, title: '切换失败', detail: error.message })
+        } finally {
+          setBusy('')
+        }
+      }
 
-      return h('div', { className: 'cs-stack' },
+      const changeKind = (kind) => {
+        const presetKey = PRESET_BY_KIND[kind]
+        if (!presetKey) return
+        setDraft({ ...blankPreset(presetKey), _existing: false })
+        setModels([])
+        setResult(null)
+      }
+      const roleProviders = (role) => providers.filter((provider) => role.kinds.includes(provider.kind))
+      const addressLabel = (kind) => kind === 'comfyui' ? '服务地址' : kind === 'dashscope-wan' ? 'API 地址' : 'API 地址'
+      const fieldHelp = (key, kind) => {
+        if (key === 'id') return '支持中文、字母、数字、点、下划线和短横线，最多 64 个字符。'
+        if (key === 'apiKey') return '密钥只保存在本机，已有密钥时留空即可。'
+        if (key === 'modelId') return '填写控制台里的模型 ID。'
+        if (key === 'voice') return '可选；留空使用上游默认音色。'
+        if (key === 'workflowRef') return 'ComfyUI 的 API 工作流 JSON 文件路径。'
+        if (key === 'origin' || key === 'baseUrl') return kind === 'comfyui' ? '填写 ComfyUI 服务根地址。' : '可以使用官方地址，也可以填写兼容网关。'
+        return ''
+      }
+      const fieldTitle = (key, label, kind) => {
+        if (key === 'id') return '配置名称'
+        if (key === 'baseUrl' || key === 'origin') return addressLabel(kind)
+        if (key === 'model') return '模型名称'
+        if (key === 'modelId') return '模型 ID'
+        return label
+      }
+      const renderProvider = (provider) => {
+        const role = ROLE_CONFIG[providerRole(provider.kind)]
+        return h('div', { key: provider.id, className: 'cs-provider-row' },
+          h('div', { className: 'cs-provider-main' },
+            h('span', { className: `cs-provider-dot${provider.enabled !== false ? ' is-on' : ''}` }),
+            h('div', { className: 'cs-provider-copy' },
+              h('div', { className: 'cs-provider-title-line' },
+                h('strong', { className: 'cs-provider-title' }, provider.id),
+                h(Badge, { tone: provider.enabled !== false ? 'ok' : 'neutral' }, provider.enabled !== false ? '已启用' : '已停用'),
+                h(Badge, { tone: 'neutral' }, providerModeLabel(provider.kind)),
+              ),
+              h('span', { className: 'cs-muted' }, provider.origin || provider.baseUrl || role?.subtitle || ''),
+            ),
+          ),
+          h('div', { className: 'cs-provider-actions' },
+            h('label', { className: 'cs-provider-toggle', title: provider.enabled === false ? '启用配置' : '停用配置' },
+              h('input', {
+                type: 'checkbox',
+                checked: provider.enabled !== false,
+                disabled: busy === `toggle:${provider.id}`,
+                onChange: () => toggleEnabled(provider),
+              }),
+              h('span', null, provider.enabled === false ? '停用' : '启用'),
+            ),
+            h(ProviderIconButton, { name: 'test', label: busy === `health:${provider.id}` ? '检测中' : '测试联通', disabled: busy === `health:${provider.id}`, onClick: () => probe('health', provider.id) }),
+            provider.kind !== 'http-generic'
+              ? h(ProviderIconButton, { name: 'models', label: busy === `models:${provider.id}` ? '获取中' : '获取模型', disabled: busy === `models:${provider.id}`, onClick: () => probe('models', provider.id) })
+              : null,
+            h(ProviderIconButton, { name: 'edit', label: '编辑配置', onClick: () => startEdit(provider) }),
+            h(ProviderIconButton, { name: 'delete', label: '删除配置', className: 'is-danger', onClick: () => remove(provider.id) }),
+          ),
+        )
+      }
+
+      return h('div', { className: 'cs-stack cs-settings' },
+        h('div', { className: 'cs-settings-overview' },
+          h('div', { className: 'cs-settings-overview-copy' },
+            h('span', { className: 'cs-kicker' }, '生产依赖'),
+            h('h2', { className: 'cs-settings-title' }, '先配四类模型，再开始生成'),
+            h('p', { className: 'cs-muted' }, '按任务配置，不需要先理解底层适配器。视频模型里的连接方式可以随时更换。'),
+          ),
+          health
+            ? h('div', { className: `cs-runtime-status${health.ffmpeg.ok ? ' is-ok' : ' is-bad'}` },
+                h('span', { className: 'cs-runtime-dot' }),
+                h('span', null, `ffmpeg ${health.ffmpeg.ok ? '已就绪' : '不可用'}`),
+                h('span', { className: 'cs-runtime-meta' }, `队列 ${health.queue ? `${health.queue.active.length} 运行 / ${health.queue.queued} 排队` : '未启动'}`),
+              )
+            : null,
+        ),
         health && !health.ffmpeg.ok
           ? h('div', { className: 'cs-alert cs-alert-danger', role: 'alert' },
               h(AlertIcon),
-              h('div', { className: 'cs-alert-body' },
-                h('p', { className: 'cs-alert-text' }, health.ffmpeg.error),
-              ),
+              h('div', { className: 'cs-alert-body' }, h('p', { className: 'cs-alert-text' }, health.ffmpeg.error)),
             )
           : null,
-        health
-          ? h('div', { className: 'cs-muted' },
-              `ffmpeg ${health.ffmpeg.ok ? '已就绪' : '不可用'} · 队列 ${health.queue ? `${health.queue.active.length} 运行 / ${health.queue.queued} 排队` : '未启动'}`)
-          : null,
-        h('div', { className: 'cs-actions' },
-          h('button', { className: 'cs-btn cs-btn-outline', onClick: () => addPreset('wan') }, '＋ 百炼万相'),
-          h('button', { className: 'cs-btn cs-btn-outline', onClick: () => addPreset('llm') }, '＋ 文案模型'),
-          h('button', { className: 'cs-btn cs-btn-outline', onClick: () => addPreset('tts') }, '＋ 配音模型'),
-          h('button', { className: 'cs-btn cs-btn-outline', onClick: () => addPreset('image') }, '＋ 生图模型'),
-          h('button', { className: 'cs-btn cs-btn-outline', onClick: () => addPreset('comfyui') }, '＋ 本地 ComfyUI'),
-          h('button', { className: 'cs-btn cs-btn-outline', onClick: () => addPreset('httpGeneric') }, '＋ 本地 HTTP'),
-          h('button', { className: 'cs-btn cs-btn-ghost', onClick: () => addPreset('ark') }, '＋ 方舟 Seedance（预留）'),
-        ),
-        providers.length === 0 && !draft
-          ? h('p', { className: 'cs-empty' }, '还没有模型。生成用百炼万相或本机 ComfyUI；成片配音/封面再加文案和配音。')
-          : null,
-        providers.map((provider) =>
-          h('div', { key: provider.id, className: 'cs-card' },
-            h('div', { className: 'cs-card-head' },
-              h('div', { className: 'cs-row-main' },
-                h('span', { className: 'cs-dot', style: { opacity: provider.enabled !== false ? 1 : 0.3 } }),
-                h('span', { className: 'cs-card-title' }, provider.id),
-                h(Badge, { tone: provider.enabled !== false ? 'ok' : 'neutral' }, provider.enabled !== false ? '已启用' : '未启用'),
-                h(Badge, { tone: 'neutral' }, KIND_ZH[provider.kind] || provider.kind),
+        h('div', { className: 'cs-settings-grid' },
+          Object.entries(ROLE_CONFIG).map(([roleKey, role]) => {
+            const entries = roleProviders(role)
+            return h('section', { key: roleKey, className: `cs-role-card${role.required ? ' is-required' : ''}` },
+              h('div', { className: 'cs-role-head' },
+                h('div', { className: 'cs-role-heading' },
+                  h('div', { className: 'cs-role-title-line' },
+                    h('h2', { className: 'cs-role-title' }, role.title),
+                    h('span', { className: `cs-role-badge${role.required ? ' is-required' : ''}` }, role.required ? '必需' : '可选'),
+                  ),
+                  h('p', { className: 'cs-muted' }, role.subtitle),
+                ),
+                h('span', { className: 'cs-role-count' }, entries.length ? `${entries.length} 个` : '未配置'),
               ),
-              h('div', { className: 'cs-actions' },
+              entries.length
+                ? h('div', { className: 'cs-provider-list' }, entries.map(renderProvider))
+                : h('div', { className: 'cs-role-empty' }, role.empty),
+              h('div', { className: 'cs-role-actions' },
                 h('button', {
-                  className: 'cs-btn cs-btn-ghost',
-                  disabled: busy === `health:${provider.id}`,
-                  onClick: () => probe('health', provider.id),
-                }, '测试联通'),
-                h('button', {
-                  className: 'cs-btn cs-btn-ghost',
-                  disabled: busy === `models:${provider.id}` || provider.kind === 'http-generic',
-                  onClick: () => probe('models', provider.id),
-                }, busy === `models:${provider.id}` ? '获取中…' : '获取模型'),
-                h('button', {
-                  className: 'cs-btn cs-btn-ghost',
-                  disabled: busy === `test:${provider.id}`,
-                  onClick: () => test(provider.id),
-                }, busy === `test:${provider.id}` ? '测试中…' : '试生成'),
-                h('button', { className: 'cs-btn cs-btn-ghost', onClick: () => startEdit(provider) }, '编辑'),
-                h('button', { className: 'cs-btn cs-btn-danger', onClick: () => remove(provider.id) }, '删除'),
+                  className: 'cs-btn cs-btn-outline cs-btn-sm',
+                  onClick: () => addPreset(role.preset),
+                }, `＋ 添加${role.title}模型`),
+                roleKey === 'video'
+                  ? h('span', { className: 'cs-hint' }, '添加后在接入方式里选择云端或本地')
+                  : null,
               ),
-            ),
-            (provider.origin || provider.baseUrl)
-              ? h('div', { className: 'cs-muted' }, provider.origin || provider.baseUrl)
-              : null,
-          ),
+            )
+          }),
         ),
         draft
-          ? h('div', { className: 'cs-card' },
-              h('div', { className: 'cs-card-head' },
-                h('h2', { className: 'cs-card-title' }, draft._existing ? '编辑模型' : `添加${KIND_ZH[draft.kind] || '模型'}`),
+          ? h('div', {
+              className: 'cs-config-backdrop',
+              onClick: (event) => { if (event.target === event.currentTarget) { setDraft(null); setModels([]) } },
+            },
+              h('section', {
+                className: 'cs-config-editor',
+                role: 'dialog',
+                'aria-modal': true,
+                onClick: (event) => event.stopPropagation(),
+              },
+              h('div', { className: 'cs-config-editor-head' },
+                h('div', null,
+                  h('span', { className: 'cs-kicker' }, draft._existing ? '编辑配置' : '新建配置'),
+                  h('h2', { className: 'cs-card-title' }, `${draft._existing ? '编辑' : '添加'}${KIND_ZH[draft.kind] || '模型'}`),
+                ),
+                h('button', { className: 'cs-btn cs-btn-ghost cs-btn-sm', onClick: () => { setDraft(null); setModels([]) } }, '关闭'),
               ),
-              h('label', { className: 'cs-check' },
-                h('input', {
-                  type: 'checkbox',
-                  checked: draft.enabled !== false,
-                  onChange: (event) => patch('enabled', event.target.checked),
-                }),
-                '启用',
-              ),
-              h('p', { className: 'cs-hint' }, '各家地址不一样，按上游文档填。保存前可先测联通、拉模型。'),
-              h('div', { className: 'cs-form-grid' },
+              !draft._existing && ROLE_CONFIG.video.kinds.includes(draft.kind)
+                ? h('label', { className: 'cs-field cs-config-mode' },
+                    h('span', { className: 'cs-label' }, '接入方式'),
+                    h('select', { className: 'cs-select', value: draft.kind, onChange: (event) => changeKind(event.target.value) },
+                      VIDEO_KIND_OPTIONS.map(([kind, label]) => h('option', { key: kind, value: kind }, label))),
+                    h('span', { className: 'cs-hint' }, '只影响视频生成这一类，不会改变其他模型配置。'),
+                  )
+                : null,
+              h('div', { className: 'cs-form-grid cs-config-grid' },
                 providerFields(draft.kind).map(([key, label]) => {
                   const isUrl = key === 'baseUrl' || key === 'origin'
                   const isModel = key === 'model' || key === 'modelId'
+                  const title = fieldTitle(key, label, draft.kind)
                   return h('label', {
                     key,
-                    className: isUrl || isModel || key === 'apiKey' || key === 'workflowRef' ? 'cs-field cs-span-full' : 'cs-field',
+                    className: isUrl || key === 'workflowRef' ? 'cs-field cs-span-full' : 'cs-field',
                   },
-                    h('span', { className: 'cs-label' }, label),
+                    h('span', { className: 'cs-label' }, title),
                     isModel && models.length
                       ? h('select', {
-                          className: 'cs-select',
-                          value: draft[key] || '',
+                          className: 'cs-select', value: draft[key] || '',
                           onChange: (event) => patch(key, event.target.value),
                         },
-                          draft[key] && !models.includes(draft[key])
-                            ? h('option', { value: draft[key] }, draft[key])
-                            : h('option', { value: '' }, `从上游选择（${models.length}）`),
+                          draft[key] && !models.includes(draft[key]) ? h('option', { value: draft[key] }, draft[key]) : h('option', { value: '' }, `从上游选择（${models.length}）`),
                           models.map((name) => h('option', { key: name, value: name }, name)),
                         )
                       : h('input', {
-                          className: 'cs-input',
-                          type: key === 'apiKey' ? 'password' : 'text',
-                          value: draft[key] || '',
-                          placeholder: key === 'apiKey' && draft.hasApiKey
-                            ? '已保存，留空则不改'
-                            : isUrl ? (URL_HINT[draft.kind] || '') : '',
+                          className: 'cs-input', type: key === 'apiKey' ? 'password' : 'text', value: draft[key] || '',
+                          placeholder: key === 'apiKey' && draft.hasApiKey ? '已保存，留空则不改' : isUrl ? (URL_HINT[draft.kind] || '') : key === 'id' ? '例如：主文案模型' : '',
                           autoComplete: key === 'apiKey' ? 'off' : undefined,
                           readOnly: key === 'id' && draft._existing,
                           onChange: (event) => patch(key, event.target.value),
                         }),
+                    fieldHelp(key, draft.kind) ? h('span', { className: 'cs-hint' }, fieldHelp(key, draft.kind)) : null,
                   )
                 }),
               ),
+              draft.kind === 'http-generic'
+                ? h('details', { className: 'cs-advanced' },
+                    h('summary', null, '高级：HTTP 协议'),
+                    h('p', { className: 'cs-hint' }, '默认协议是 /health、/generate、/tasks/:id。需要自定义字段时，保留现有协议对象并在代码配置里调整。'),
+                  )
+                : null,
               h('div', { className: 'cs-form-actions' },
-                h('button', {
-                  className: 'cs-btn cs-btn-outline',
-                  disabled: Boolean(busy),
-                  onClick: () => probe('health'),
-                }, busy.startsWith('health:') ? '检测中…' : '测试联通'),
-                draft.kind === 'http-generic'
-                  ? null
-                  : h('button', {
-                      className: 'cs-btn cs-btn-outline',
-                      disabled: Boolean(busy),
-                      onClick: () => probe('models'),
-                    }, busy.startsWith('models:') ? '获取中…' : '获取模型'),
-                h('button', {
-                  className: 'cs-btn cs-btn-outline',
-                  disabled: Boolean(busy),
-                  onClick: () => probe('test'),
-                }, busy.startsWith('test:') ? '生成中…' : '试生成'),
-                h('button', { className: 'cs-btn cs-btn-primary', onClick: save, disabled: busy === 'save' }, '保存'),
+                h('button', { className: 'cs-btn cs-btn-outline', disabled: Boolean(busy), onClick: () => probe('health') }, busy.startsWith('health:') ? '检测中…' : '测试联通'),
+                draft.kind === 'http-generic' ? null : h('button', { className: 'cs-btn cs-btn-outline', disabled: Boolean(busy), onClick: () => probe('models') }, busy.startsWith('models:') ? '获取中…' : '获取模型'),
+                h('button', { className: 'cs-btn cs-btn-outline', disabled: Boolean(busy), onClick: () => probe('test') }, busy.startsWith('test:') ? '生成中…' : '试生成'),
+                h('button', { className: 'cs-btn cs-btn-primary', onClick: save, disabled: busy === 'save' }, busy === 'save' ? '保存中…' : '保存配置'),
                 h('button', { className: 'cs-btn cs-btn-ghost', onClick: () => { setDraft(null); setModels([]) } }, '取消'),
+              ),
+              result
+                ? h('div', { className: `cs-inline-result${result.ok ? ' is-ok' : ' is-bad'}`, role: 'status', 'aria-live': 'polite' },
+                    h(Badge, { tone: result.ok ? 'ok' : 'bad' }, result.ok ? '成功' : '失败'),
+                    h('div', { className: 'cs-inline-result-copy' },
+                      h('strong', null, result.title),
+                      result.detail ? h('span', null, String(result.detail).slice(0, 500)) : null,
+                    ),
+                  )
+                : null,
               ),
             )
           : null,
-        result
-          ? h('div', { className: 'cs-card' },
-              h('div', { className: 'cs-row-main' },
-                h(Badge, { tone: result.ok ? 'ok' : 'bad' }, result.ok ? '成功' : '失败'),
-                h('span', { className: 'cs-card-title' }, result.title),
+        !draft && result
+          ? h('div', { className: `cs-result-toast${result.ok ? ' is-ok' : ' is-bad'}`, role: 'status', 'aria-live': 'polite' },
+              h(Badge, { tone: result.ok ? 'ok' : 'bad' }, result.ok ? '成功' : '失败'),
+              h('div', { className: 'cs-inline-result-copy' },
+                h('strong', null, result.title),
+                result.detail ? h('span', null, String(result.detail).slice(0, 500)) : null,
               ),
-              result.detail ? h('p', { className: 'cs-muted' }, String(result.detail).slice(0, 500)) : null,
+              h('button', { className: 'cs-btn cs-btn-ghost cs-btn-sm', onClick: () => setResult(null), 'aria-label': '关闭提示' }, '×'),
             )
           : null,
       )
@@ -1585,6 +2032,7 @@ window.__ModuleLoader__.load({
       const [batches, setBatches] = useState([])
       const [postiz, setPostiz] = useState(null)
       const [channels, setChannels] = useState([])
+      const [publishJobs, setPublishJobs] = useState([])
       const [picked, setPicked] = useState([])
       const [form, setForm] = useState({ apiUrl: 'https://api.postiz.com', apiKey: '' })
       const [busy, setBusy] = useState('')
@@ -1592,8 +2040,9 @@ window.__ModuleLoader__.load({
 
       const load = useCallback(async () => {
         try {
-          const [list, cfg] = await Promise.all([api('GET', '/batches'), api('GET', '/postiz')])
+          const [list, cfg, jobInfo] = await Promise.all([api('GET', '/batches'), api('GET', '/postiz'), api('GET', '/publish/jobs')])
           setBatches(list.batches || [])
+          setPublishJobs(jobInfo.jobs || [])
           setPostiz(cfg)
           setForm((current) => ({ ...current, apiUrl: cfg.apiUrl || current.apiUrl }))
           if (cfg.hasApiKey) {
@@ -1659,9 +2108,9 @@ window.__ModuleLoader__.load({
         setBusy(`dist:${item.id}`)
         setNotice('')
         try {
-          const data = await api('POST', `/items/${item.id}/distribute`, { integrationIds: picked })
-          const names = (data.distribute?.channels || []).map((channel) => channel.name).join('、')
-          setNotice(`已交给 Postiz：${names || '已提交'}`)
+          const data = await api('POST', `/items/${item.id}/publish`, { integrationIds: picked, scheduleAt: new Date().toISOString(), mode: 'now' })
+          const names = (data.job?.targets || []).map((channel) => channel.name).join('、')
+          setNotice(`已加入发布队列：${names || '已提交'}`)
           await load()
         } catch (error) {
           onError?.(error.message)
@@ -1725,7 +2174,7 @@ window.__ModuleLoader__.load({
           h('div', { className: 'cs-card-head' },
             h('h2', { className: 'cs-card-title' }, '待分发'),
             h('div', { className: 'cs-card-actions' },
-              h('span', { className: 'cs-muted' }, `${rows.length} 条`),
+              h('span', { className: 'cs-muted' }, `${rows.length} 条 · ${publishJobs.filter((job) => job.status === 'scheduled' || job.status === 'publishing').length} 个发布中`),
               h('button', { className: 'cs-btn cs-btn-ghost cs-btn-sm', onClick: load }, '刷新'),
             ),
           ),
@@ -1740,7 +2189,8 @@ window.__ModuleLoader__.load({
                 },
                   h('div', { className: 'cs-row-main' },
                     h('span', { className: 'cs-row-title' }, item.title || item.id),
-                    h(Badge, { tone: item.distribute?.at ? 'info' : 'ok' }, item.distribute?.at ? '已分发' : '已通过'),
+                    h(Badge, { tone: item.publish?.status === 'failed' ? 'bad' : item.publish?.status === 'published' ? 'info' : item.publish?.status === 'publishing' ? 'warn' : 'ok' },
+                      item.publish?.status === 'published' ? '已发布' : item.publish?.status === 'publishing' ? '发布中' : item.publish?.status === 'failed' ? '发布失败' : '已通过'),
                     h('span', { className: 'cs-row-meta' }, item.durationSec ? `${item.durationSec.toFixed(1)}s` : ''),
                     item.distribute?.channels?.length
                       ? h('span', { className: 'cs-row-meta' }, item.distribute.channels.map((channel) => channel.name).join('、'))
@@ -1968,9 +2418,13 @@ window.__ModuleLoader__.load({
       return h('div', { className: 'cs-studio' },
         h('div', { className: 'cs-well' },
           clips.length === 0
-            ? h('div', { className: `cs-gates${ratio}` },
-                [0, 1, 2, 3].map((index) => h('div', { key: index, className: `cs-gate${ratio}`, 'aria-hidden': true })),
-                h('p', { className: 'cs-well-copy' }, '还没有镜头。写下面的提示词，生成后排在这里。'),
+            ? h('div', { className: 'cs-empty-studio' },
+                h('div', { className: 'cs-empty-mark', 'aria-hidden': true }, '✦'),
+                h('strong', { className: 'cs-empty-title' }, '从一句话开始生成镜头'),
+                h('p', { className: 'cs-well-copy' }, '还没有镜头。写下画面、动作和氛围，生成结果会按时间顺序出现在这里。'),
+                h('div', { className: `cs-gates${ratio}`, 'aria-hidden': true },
+                  [0, 1, 2, 3].map((index) => h('div', { key: index, className: `cs-gate${ratio}` })),
+                ),
               )
             : h('div', { className: 'cs-gallery' },
                 clips.map((clip) => h('div', {
@@ -2103,7 +2557,7 @@ window.__ModuleLoader__.load({
             h('textarea', {
               className: 'cs-prompt-input',
               rows: 3,
-              placeholder: '描述要生成的镜头。例如：秋日通勤，侧逆光，中景跟拍，不要字幕',
+              placeholder: '描述要生成的镜头。例如：BMS 工厂产线，电芯分选、焊接和测试，干净工业广告风，不要字幕',
               value: prompt,
               onChange: (event) => setPrompt(event.target.value),
             }),
@@ -2241,10 +2695,14 @@ window.__ModuleLoader__.load({
               ),
             )
           : null,
-        h('div', { className: `cs-body${tab === 'console' ? '' : ' is-scroll'}` },
+        h('div', { className: 'cs-body is-scroll' },
         tab === 'console'
-          ? h(CreateComposer, {
+          ? h(BatchConsole, {
               key: composerKey,
+              groups,
+              health,
+              services,
+              platforms,
               readiness: h(Readiness, {
                 health,
                 onConfigure: () => setTab('settings'),
@@ -2412,7 +2870,7 @@ window.__ModuleLoader__.load({
       },
       // 测试缝隙：渲染测试需要单独挂载这些子组件。Cordis 忽略未知字段。
       __components: {
-        Workbench, ProvidersPage, NewBatchForm, BatchDetail, ReviewCard,
+        Workbench, BatchConsole, ProvidersPage, NewBatchForm, BatchDetail, ReviewCard,
         Readiness, UsageLine, StepStrip, CostBar, LogViewer, ReadyPage, SettingsPage, SidebarIcon, CreateComposer, DirectoryPicker,
       },
     }

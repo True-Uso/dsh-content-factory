@@ -1,4 +1,5 @@
 import { createApi } from './lib/api.js'
+import { createPublisher } from './lib/publisher.js'
 import { createRunner } from './lib/worker.js'
 
 const API_PREFIX = '/content-studio/api'
@@ -28,14 +29,17 @@ export function apply(ctx) {
   // runner is built first, but its events need api.broadcast — one mutable seam.
   const sink = { emit: () => {} }
   const runner = createRunner({ concurrency: 2, onEvent: (event) => sink.emit(event) })
+  const publisherSink = { emit: () => {} }
+  const publisher = createPublisher({ onEvent: (event) => publisherSink.emit(event) })
   let origin = null
   try {
     origin = typeof web.getOrigin === 'function' ? web.getOrigin() : null
   } catch {
     origin = null
   }
-  const api = createApi({ runner, prefix: API_PREFIX, allowedOrigin: origin })
+  const api = createApi({ runner, publisher, prefix: API_PREFIX, allowedOrigin: origin })
   sink.emit = api.broadcast
+  publisherSink.emit = api.broadcast
 
   const register = () => web.register({
     kind: 'prefix',
@@ -59,6 +63,8 @@ export function apply(ctx) {
         })
         .catch((error) => console.warn('[content-studio] 续跑失败:', error.message))
 
+      publisher.start()
+
       // 配音缓存清理放后台：不影响启动
       import('./lib/steps/voice.js')
         .then(({ pruneVoiceCache }) => pruneVoiceCache())
@@ -67,13 +73,16 @@ export function apply(ctx) {
         })
         .catch(() => {})
 
-      return () => runner.stop()
+      return () => {
+        publisher.stop()
+        runner.stop()
+      }
     })
   }
 
   if (typeof ctx.provide === 'function') {
     try {
-      ctx.provide('contentStudio', { runner, api })
+      ctx.provide('contentStudio', { runner, publisher, api })
     } catch {
       // providing a service is optional; ignore collisions
     }

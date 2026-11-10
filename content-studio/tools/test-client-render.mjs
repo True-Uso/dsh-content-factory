@@ -86,6 +86,9 @@ try {
 
 check('渲染出了非空 HTML', html.length > 200, `${html.length} chars`)
 check('有页面标题', html.includes('生成'))
+check('总控台有一句话需求入口', html.includes('先说需求，AI 帮你拆成批次'))
+check('总控台有 AI 拆解按钮', html.includes('让 AI 拆解'))
+check('保留视频模型试验台入口', html.includes('视频模型试验台（单次生成'))
 check('四个页签都在', ['生成', '审核', '待分发', '设置'].every((label) => html.includes(label)))
 check('有提示词框', html.includes('描述要生成的镜头'))
 check('有生成按钮', html.includes('生成'))
@@ -303,8 +306,8 @@ await act(async () => {
 await act(async () => {
   await new Promise((resolve) => setTimeout(resolve, 30))
 })
-const addWan = providersTree.root.find((node) => node.type === 'button' && node.children.join('') === '＋ 百炼万相')
-await act(async () => { addWan.props.onClick() })
+const addVideo = providersTree.root.find((node) => node.type === 'button' && node.children.join('') === '＋ 添加视频模型')
+await act(async () => { addVideo.props.onClick() })
 const wanForm = JSON.stringify(providersTree.toJSON())
 check('万相表单有地址栏', wanForm.includes('https://dashscope.aliyuncs.com'))
 check('万相表单可测联通', wanForm.includes('测试联通'))

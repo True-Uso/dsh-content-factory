@@ -31,6 +31,10 @@ const short = await parseBrief({ brief: '做2条视频号，30秒' })
 check('视频号识别', short.config.platform === 'shipinhao', short.config.platform)
 check('时长识别', short.config.targetSec === 30, String(short.config.targetSec))
 
+const overseas = await parseBrief({ brief: '做 4 条海外 BMS 工厂宣传视频，发 TikTok 和 LinkedIn，每天 10:00 一条' })
+check('海外平台识别', overseas.config.platform === 'tiktok', overseas.config.platform)
+check('海外主题保留 BMS', overseas.config.topic.includes('BMS'))
+
 const fallback = await parseBrief({ brief: '随便做点内容' })
 check('未指定条数默认 5', fallback.count === 5, String(fallback.count))
 check('默认平台抖音', fallback.config.platform === 'douyin')
