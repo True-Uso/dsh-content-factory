@@ -4,10 +4,11 @@
  *   node tools/make-index.mjs \
  *     --repo https://github.com/True-Uso/dsh-content-factory \
  *     --commit <40位 sha> \
+ *     --path content-studio \
  *     --output ../dsh-content-factory-index/index.json
  *
- * 索引文件可以放在公开静态页（GitHub Pages / 内网静态主机）；代码仓库保持私有。
- * 不传 --commit 时读取当前仓库 HEAD。
+ * 索引文件可以放在公开静态页（GitHub Pages / 内网静态主机）。
+ * 不传 --commit 时读取当前仓库 HEAD；插件包在 monorepo 的子目录时用 --path 指定。
  */
 import { execFileSync } from 'node:child_process'
 import { readFile, writeFile } from 'node:fs/promises'
@@ -20,6 +21,7 @@ function arg(name, fallback = '') {
 }
 
 const repo = arg('repo')
+const packagePath = arg('path', 'content-studio').replace(/^\/+|\/+$/g, '')
 const output = resolve(arg('output', 'index.json'))
 const commit = arg('commit') || execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim()
 const here = dirname(fileURLToPath(import.meta.url))
@@ -61,7 +63,12 @@ const index = {
         {
           version: pkg.version,
           publishTimestamp: Math.floor(Date.now() / 1000),
-          source: { type: 'git', url: repo, commit },
+          source: {
+            type: 'git',
+            url: repo,
+            commit,
+            ...(packagePath ? { path: packagePath } : {}),
+          },
           ...(pkg.engines?.dsh ? { engines: { dsh: pkg.engines.dsh } } : {}),
         },
       ],
@@ -70,4 +77,4 @@ const index = {
 }
 
 await writeFile(output, `${JSON.stringify(index, null, 2)}\n`, 'utf8')
-console.log(`写入 ${output}（${pkg.name}@${pkg.version} @ ${commit.slice(0, 7)}）`)
+console.log(`写入 ${output}（${pkg.name}@${pkg.version} @ ${commit.slice(0, 7)}${packagePath ? `，子目录 ${packagePath}` : ''}）`)

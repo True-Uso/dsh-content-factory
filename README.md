@@ -35,7 +35,7 @@ DeepSeek Harness（DSH）插件：**一句话批量生产社交媒体短视频**
 
 当前 profile 也可以通过 `link:` 指向本仓库，改代码后关开插件即可重载 Host 半侧。
 
-### 团队分发（私有仓库 + 自建索引）
+### 团队分发（GitHub + 自建索引）
 
 代码留在 GitHub，另建一个公开的 metadata 索引仓库，同事在 DSH「插件 → 发现」添加索引源后一键安装/更新。完整步骤见 [docs/发布到GitHub.md](docs/发布到GitHub.md)。
 

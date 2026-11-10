@@ -1,10 +1,10 @@
-# 发布与安装（私有仓库 + 自建索引）
+# 发布与安装（GitHub + 自建索引）
 
-目标：代码留在私有 GitHub 仓库；同事的 DSH 里出现一个「内容生产」安装入口，点一下就装好、能更新。
+目标：代码留在 GitHub 仓库（建议私有）；同事的 DSH 里出现一个「内容生产」安装入口，点一下就装好、能更新。
 
 ## 1. 私有代码仓库
 
-把 `content-studio/` 推到私有 GitHub 仓库，例如：
+把 `content-studio/` 推到 GitHub 仓库，例如：
 
 ```bash
 git remote add origin https://github.com/True-Uso/dsh-content-factory.git
@@ -46,6 +46,7 @@ git rev-parse HEAD
 node tools/make-index.mjs \
   --repo https://github.com/True-Uso/dsh-content-factory \
   --commit <40位commit> \
+  --path content-studio \
   --output ../dsh-content-factory-index/index.json
 ```
 

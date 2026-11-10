@@ -20,7 +20,7 @@ DeepSeek Harness 插件：**批量生产短视频**，从素材到成片到审�
 
 ## 安装
 
-插件从**私有 GitHub 仓库** `https://github.com/True-Uso/dsh-content-factory` 分发；代码仓库保持私有，只把一份 metadata 索引放到公开静态页。同事在 DSH 的「插件 → 发现」里添加一次索引源，之后点「安装 / 更新」即可。完整步骤见 [docs/发布到GitHub.md](../docs/发布到GitHub.md)。
+插件从**GitHub 仓库** `https://github.com/True-Uso/dsh-content-factory` 分发；代码仓库保持私有，只把一份 metadata 索引放到公开静态页。同事在 DSH 的「插件 → 发现」里添加一次索引源，之后点「安装 / 更新」即可。完整步骤见 [docs/发布到GitHub.md](../docs/发布到GitHub.md)。
 
 **1. 依赖**
 
