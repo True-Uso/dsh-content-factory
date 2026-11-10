@@ -2,9 +2,9 @@
  * 生成 DSH format-1 插件索引。
  *
  *   node tools/make-index.mjs \
- *     --repo https://github.com/your-org/content-studio \
+ *     --repo https://github.com/True-Uso/dsh-content-factory \
  *     --commit <40位 sha> \
- *     --output ../content-studio-index/index.json
+ *     --output ../dsh-content-factory-index/index.json
  *
  * 索引文件可以放在公开静态页（GitHub Pages / 内网静态主机）；代码仓库保持私有。
  * 不传 --commit 时读取当前仓库 HEAD。

@@ -1,4 +1,4 @@
-﻿# Content Studio（内容生产）
+﻿# dsh-content-factory（内容生产）
 
 > 2026-11-04 起的产品形态与分发方式以 [需求对齐稿](../docs/需求对齐-2026-11-04.md) 为准：左侧栏主面板入口、私有 GitHub + 公开索引分发、本期不做独立 worker。
 
@@ -20,7 +20,7 @@ DeepSeek Harness 插件：**批量生产短视频**，从素材到成片到审�
 
 ## 安装
 
-插件从**私有 GitHub 仓库**分发；代码仓库保持私有，只把一份 metadata 索引放到公开静态页。同事在 DSH 的「插件 → 发现」里添加一次索引源，之后点「安装 / 更新」即可。完整步骤见 [docs/发布到GitHub.md](../docs/发布到GitHub.md)。
+插件从**私有 GitHub 仓库** `https://github.com/True-Uso/dsh-content-factory` 分发；代码仓库保持私有，只把一份 metadata 索引放到公开静态页。同事在 DSH 的「插件 → 发现」里添加一次索引源，之后点「安装 / 更新」即可。完整步骤见 [docs/发布到GitHub.md](../docs/发布到GitHub.md)。
 
 **1. 依赖**
 
@@ -206,6 +206,7 @@ content-studio/
 
 ```bash
 node tools/check.mjs               # 27 个模块加载
+node tools/check-client.mjs        # 客户端 main/sidebar 契约
 node tools/test-pipeline.mjs       # 56 项：字幕/ASS/WAV/文案/存储/配音
 node tools/test-render.mjs         # 23 项：EDL + 真渲染 + 循环/转场/BGM/图片/16:9
 node tools/test-media.mjs          # 50 项：扫描/索引清理/封面/三级校验/平台硬规格/去重/图片探测

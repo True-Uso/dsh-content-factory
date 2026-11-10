@@ -7,7 +7,7 @@
 把 `content-studio/` 推到私有 GitHub 仓库，例如：
 
 ```bash
-git remote add origin https://github.com/your-org/content-studio.git
+git remote add origin https://github.com/True-Uso/dsh-content-factory.git
 git push -u origin main
 ```
 
@@ -22,10 +22,10 @@ git push -u origin main
 
 ## 2. 公开的 metadata 索引仓库
 
-新建一个**公开**仓库（只放索引，不放代码），例如 `content-studio-index`：
+新建一个**公开**仓库（只放索引，不放代码），例如 `dsh-content-factory-index`：
 
 ```
-content-studio-index/
+dsh-content-factory-index/
 ├─ index.json
 └─ icon.svg        # 可选；脚本默认把 icon 内联成 data URL
 ```
@@ -44,9 +44,9 @@ git rev-parse HEAD
 
 ```bash
 node tools/make-index.mjs \
-  --repo https://github.com/your-org/content-studio \
+  --repo https://github.com/True-Uso/dsh-content-factory \
   --commit <40位commit> \
-  --output ../content-studio-index/index.json
+  --output ../dsh-content-factory-index/index.json
 ```
 
 把 `index.json` 提交到公开索引仓库。索引里只有插件名、描述、图标和私有仓库地址；**代码和 key 都不会公开**。
@@ -55,7 +55,7 @@ node tools/make-index.mjs \
 
 1. 打开 DSH 的 **插件 → 发现**（旧版本在 **设置 → 插件**）。
 2. **添加索引源**，填 GitHub Pages 地址：
-   `https://your-org.github.io/content-studio-index/index.json`
+   `https://true-uso.github.io/dsh-content-factory-index/index.json`
 3. 搜索「内容生产」，点 **安装**。
 4. 左侧栏出现「内容生产」，点开就是总控台。
 

@@ -24,7 +24,7 @@ let factory = null
 globalThis.window = {
   __ModuleLoader__: {
     load({ id, factory: fn }) {
-      if (id !== '@local/content-studio') throw new Error(`意外的模块 id：${id}`)
+      if (id !== 'dsh-content-factory') throw new Error(`意外的模块 id：${id}`)
       factory = fn
     },
   },

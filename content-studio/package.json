@@ -1,10 +1,15 @@
 {
-  "name": "@local/content-studio",
+  "name": "dsh-content-factory",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Provider registry and local video-model adapters for batch content production.",
-  "keywords": ["dsh", "content", "video", "短视频", "内容生产"],
+  "description": "DeepSeek Harness plugin: batch social video production with AI copy, voice, editing, covers, validation and review.",
+  "keywords": ["dsh", "dsh-plugin", "deepseek-harness", "content", "video", "short-video", "短视频", "内容生产"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/True-Uso/dsh-content-factory.git"
+  },
+  "homepage": "https://github.com/True-Uso/dsh-content-factory#readme",
   "exports": {
     ".": "./index.js",
     "./client": "./client.js",

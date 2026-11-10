@@ -1,9 +1,9 @@
 window.__ModuleLoader__.load({
-  id: '@local/content-studio',
+  id: 'dsh-content-factory',
   factory(require) {
     const React = require('react')
     const h = React.createElement
-    const { useCallback, useEffect, useMemo, useRef, useState } = React
+    const { useCallback, useEffect, useMemo, useState } = React
 
     const API = '/content-studio/api'
 

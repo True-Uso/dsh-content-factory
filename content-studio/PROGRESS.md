@@ -11,7 +11,7 @@
 | ffmpeg（开发用） | `D:\Projects\内容创作\tools\bin\{ffmpeg,ffprobe}.exe` |
 | ffmpeg（宿主用） | `%USERPROFILE%\.content-studio\bin\`（宿主 cwd 不是工作区，靠这个找到） |
 | ffmpeg 解析 | 配置 → 环境变量 → PATH → 插件自身位置 → cwd 向上 4 层 → `$HOME/.content-studio/bin` → 常见安装路径 |
-| 插件 | `@local/content-studio`，entryId `include:content-studio` |
+| 插件 | `dsh-content-factory`，entryId `include:content-studio` |
 | 热重载 | `plugin_manager set_plugin enabled=false` 再 `true` 可加载新代码，**不需要重启 Harness** |
 | 数据目录 | `~/.content-studio`（`providers.json` `materials.json` `bin/` `voice-cache/` `batches/`） |
 
